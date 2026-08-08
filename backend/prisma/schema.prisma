@@ -1,0 +1,93 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AccountType {
+  CONTA_CORRENTE
+  DINHEIRO
+  CARTAO_CREDITO
+}
+
+enum CategoryType {
+  RECEITA
+  DESPESA
+}
+
+enum TransactionType {
+  RECEITA
+  DESPESA
+}
+
+model Account {
+  id            String      @id @default(cuid())
+  nome          String
+  tipo          AccountType
+  limite        Decimal?    @db.Decimal(12, 2)
+  diaFechamento Int?        @map("dia_fechamento")
+  diaVencimento Int?        @map("dia_vencimento")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  transactions Transaction[]
+  purchases    Purchase[]
+
+  @@map("accounts")
+}
+
+model Category {
+  id    String       @id @default(cuid())
+  nome  String
+  tipo  CategoryType
+  icone String?
+  cor   String?
+
+  transactions Transaction[]
+  purchases    Purchase[]
+
+  @@map("categories")
+}
+
+model Purchase {
+  id             String   @id @default(cuid())
+  accountId      String   @map("account_id")
+  categoryId     String   @map("category_id")
+  valorTotal     Decimal  @db.Decimal(12, 2) @map("valor_total")
+  descricao      String
+  dataCompra     DateTime @map("data_compra")
+  numeroParcelas Int      @map("numero_parcelas")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  account      Account       @relation(fields: [accountId], references: [id])
+  category     Category      @relation(fields: [categoryId], references: [id])
+  transactions Transaction[]
+
+  @@map("purchases")
+}
+
+model Transaction {
+  id            String          @id @default(cuid())
+  accountId     String          @map("account_id")
+  categoryId    String          @map("category_id")
+  valor         Decimal         @db.Decimal(12, 2)
+  descricao     String
+  data          DateTime
+  tipo          TransactionType
+  purchaseId    String?         @map("purchase_id")
+  parcelaNumero Int?            @map("parcela_numero")
+  parcelaTotal  Int?            @map("parcela_total")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  account  Account   @relation(fields: [accountId], references: [id])
+  category Category  @relation(fields: [categoryId], references: [id])
+  purchase Purchase? @relation(fields: [purchaseId], references: [id])
+
+  @@index([accountId, data])
+  @@index([purchaseId])
+  @@map("transactions")
+}
