@@ -1,0 +1,29 @@
+# Dependencies
+**/node_modules/
+
+# Env files (never commit secrets)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# OS
+.DS_Store
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Backend build output
+backend/dist/
+backend/src/generated/
+
+# Expo / React Native
+mobile/.expo/
+mobile/.expo-shared/
+mobile/dist/
+mobile/web-build/
+mobile/*.orig.*
+mobile/ios/
+mobile/android/
