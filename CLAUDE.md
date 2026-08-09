@@ -8,7 +8,7 @@ Monorepo with two **fully independent** projects (no shared workspaces, separate
 
 - `backend/` — Express + TypeScript + Prisma + PostgreSQL API.
 - `mobile/` — React Native + Expo app.
-- `docs/` — product spec (`docs/mvp-spec.md`) and technical architecture/decisions log (`docs/architecture.md`). Read `docs/architecture.md` before making non-trivial changes — it documents several non-obvious setup decisions (Prisma 7 driver-adapter requirement, pnpm+Metro hoisting requirement, why the mobile app is pinned to Expo SDK 54, Docker port/volume quirks, etc.) that aren't visible from the code alone.
+- `docs/` — product spec (`docs/mvp-spec.md`), technical architecture/decisions log (`docs/architecture.md`), and the backend API reference (`docs/api.md`). Read `docs/architecture.md` before making non-trivial changes — it documents several non-obvious setup decisions (Prisma 7 driver-adapter requirement, pnpm+Metro hoisting requirement, why the mobile app is pinned to Expo SDK 54, Docker port/volume quirks, etc.) that aren't visible from the code alone. Read `docs/api.md` before writing any mobile screen that calls the backend — it has every route, request/response shape, and the Decimal-as-string serialization gotcha (money fields arrive as e.g. `"100.5"`, not a fixed-2-decimal string or a JS number).
 
 Both projects use **pnpm**, not npm/yarn.
 

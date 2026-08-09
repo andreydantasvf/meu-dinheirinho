@@ -1,6 +1,6 @@
 # Arquitetura e decisões técnicas
 
-Este documento registra como o backend e o mobile foram montados no setup inicial (agosto/2026), as decisões tomadas e por quê — principalmente o que não é óbvio só de ler o código. Ver [`mvp-spec.md`](./mvp-spec.md) para o escopo de produto.
+Este documento registra como o backend e o mobile foram montados no setup inicial (agosto/2026), as decisões tomadas e por quê — principalmente o que não é óbvio só de ler o código. Ver [`mvp-spec.md`](./mvp-spec.md) para o escopo de produto e [`api.md`](./api.md) para o contrato de endpoints (rotas, request/response, formato de erros) que o mobile consome.
 
 ## Visão geral do repositório
 
@@ -17,7 +17,7 @@ Essa independência foi uma escolha deliberada: não há código compartilhado h
 
 `routes` → `controllers` → `services` → `repositories`. Regra importante: **só o repository importa o Prisma Client** (`src/lib/prisma.ts`). Services não sabem que o Prisma existe — chamam o repository e aplicam regra de negócio (ex. lançar `AppError` 404 se o recurso não existe).
 
-A fatia vertical de `Category` (`src/{routes,controllers,services,repositories,validators}/category.*`) é o template de referência para implementar Account, Purchase e Transaction.
+A fatia vertical de `Category` (`src/{routes,controllers,services,repositories,validators}/category.*`) é o template de referência para implementar Account, Purchase e Transaction — todas as quatro (mais a fatia de agregação `reports.*`) já estão implementadas. Ver [`api.md`](./api.md) para o contrato completo de rotas/payloads.
 
 ### Prisma 7 — pontos não óbvios
 
