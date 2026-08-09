@@ -34,6 +34,12 @@ Decisão deliberada para reduzir fricção de quem está começando com Node (se
 
 API aberta no MVP — decisão consciente, documentada na spec do produto. Se a API for exposta publicamente antes de implementar auth, avaliar ao menos uma API key fixa.
 
+### Testes (Vitest)
+
+Testes ficam colocados junto do código-fonte como `*.test.ts` (ex. `account.schema.test.ts` ao lado de `account.schema.ts`), não em uma pasta `__tests__` separada. Cobertura é de unidade apenas: services (com o repository mockado) e funções puras (validators, `report-calculations.ts`) — não há testes de integração/HTTP batendo em rotas reais ou no banco. Rodar com `pnpm test` (`vitest run`) ou `pnpm test:watch`.
+
+A fatia de `reports.*` (`repository`/`service`/`controller`/`routes` sob `dashboard`/`extrato`/`fatura`) não segue o template de `category.*` à risca — não existe um model `Report` no Prisma; é uma camada de agregação somente-leitura sobre `Transaction`/`Account`.
+
 ### Docker
 
 - `docker-compose.yml` mora em `backend/` (não na raiz do repo) — reforça que o backend é uma unidade auto-contida, do jeito que o Coolify vai consumir no deploy.
@@ -68,8 +74,5 @@ Configurado via `babel.config.js` (`jsxImportSource: 'nativewind'` + plugin `nat
 
 ## O que ainda não existe
 
-- CRUD completo de Account, Purchase e Transaction (só Category está implementado, como referência).
-- Lógica de geração automática de parcelas (Purchase → N Transactions).
-- Telas reais (todas são placeholders hoje, exceto o health-check da Home).
+- Telas reais no mobile (todas são placeholders hoje, exceto o health-check da Home).
 - Autenticação (fora de escopo do MVP, conforme `mvp-spec.md`).
-- Testes automatizados (nenhum framework de teste configurado ainda em nenhum dos dois projetos).

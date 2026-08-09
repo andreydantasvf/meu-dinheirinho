@@ -28,9 +28,11 @@ pnpm lint                       # eslint
 pnpm format                     # prettier --write
 pnpm exec tsc --noEmit          # type-check without building
 pnpm build && pnpm start        # production build (outside Docker)
+pnpm test                       # vitest run
+pnpm test:watch                 # vitest
 ```
 
-No test framework is configured yet.
+Tests are colocated as `*.test.ts` next to the source file (e.g. `account.schema.test.ts` beside `account.schema.ts`), not in a separate `__tests__` folder. Coverage is unit-level only — services (repository mocked) and pure functions (validators, `report-calculations.ts`) — no integration/HTTP tests.
 
 The API is exposed at `localhost:3000`; Postgres at `localhost:5433` (5432 was already taken by another local project — internal container-to-container traffic still uses `postgres:5432`).
 

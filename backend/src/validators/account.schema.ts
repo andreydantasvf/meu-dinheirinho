@@ -18,7 +18,15 @@ export const createAccountSchema = baseAccountSchema.refine(
   },
 );
 
-export const updateAccountSchema = baseAccountSchema.partial();
+export const updateAccountSchema = baseAccountSchema.partial().refine(
+  (data) =>
+    data.tipo !== 'CARTAO_CREDITO' ||
+    (data.limite !== undefined && data.diaFechamento !== undefined && data.diaVencimento !== undefined),
+  {
+    message: 'limite, diaFechamento e diaVencimento são obrigatórios para contas do tipo CARTAO_CREDITO',
+    path: ['tipo'],
+  },
+);
 
 export type CreateAccountInput = z.infer<typeof baseAccountSchema>;
 export type UpdateAccountInput = z.infer<typeof updateAccountSchema>;
