@@ -1,0 +1,62 @@
+import { Prisma } from '../generated/prisma/client';
+import { accountRepository } from '../repositories/account.repository';
+import { reportsRepository } from '../repositories/reports.repository';
+import { AppError } from '../types/errors';
+import {
+  agruparFaturaAtualPorCartao,
+  agruparFaturasFuturas,
+  agruparGastoPorCategoria,
+  calcularLimiteDisponivel,
+  calcularSaldoMes,
+  construirFiltroExtrato,
+  somarValores,
+  type ExtratoFiltro,
+} from './report-calculations';
+
+export const reportsService = {
+  async dashboard() {
+    const transactions = await reportsRepository.findTransactionsDoMesAtual();
+    const despesas = transactions.filter((t) => t.tipo === 'DESPESA');
+    const doCartao = transactions.filter((t) => t.account.tipo === 'CARTAO_CREDITO');
+
+    return {
+      saldoMes: calcularSaldoMes(transactions),
+      gastoPorCategoria: agruparGastoPorCategoria(despesas),
+      faturaAtualPorCartao: agruparFaturaAtualPorCartao(doCartao),
+    };
+  },
+
+  extrato(filtro: ExtratoFiltro) {
+    const where = construirFiltroExtrato(filtro);
+    return reportsRepository.findTransactionsPorFiltro(where);
+  },
+
+  async fatura(accountId: string) {
+    const account = await accountRepository.findById(accountId);
+    if (!account) throw new AppError('Conta não encontrada', 404);
+    if (account.tipo !== 'CARTAO_CREDITO') {
+      throw new AppError('Conta não é um cartão de crédito', 400);
+    }
+
+    const hoje = new Date();
+    const inicioMesAtual = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1));
+    const inicioProximoMes = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 1));
+
+    const transactions = await reportsRepository.findTransactionsDoCartaoApartirDe(
+      accountId,
+      inicioMesAtual,
+    );
+    const doMesAtual = transactions.filter((t) => t.data < inicioProximoMes);
+    const futuras = transactions.filter((t) => t.data >= inicioProximoMes);
+
+    const faturaAtual = somarValores(doMesAtual);
+    const faturasFuturas = agruparFaturasFuturas(futuras);
+    const limiteDisponivel = calcularLimiteDisponivel({
+      limite: account.limite ?? new Prisma.Decimal(0),
+      faturaAtual,
+      faturasFuturas,
+    });
+
+    return { faturaAtual, faturasFuturas, limiteDisponivel };
+  },
+};
