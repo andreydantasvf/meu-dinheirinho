@@ -10,6 +10,9 @@
 # OS
 .DS_Store
 
+# Subagent-driven-development scratch workspace
+.superpowers/
+
 # Editors
 .vscode/*
 !.vscode/extensions.json
