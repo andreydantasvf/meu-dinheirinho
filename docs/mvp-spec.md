@@ -4,7 +4,7 @@ App pessoal de controle financeiro para registrar entradas, saídas, gastos de c
 
 ## Visão do produto
 
-Um app mobile simples e rápido pra registrar movimentações financeiras do dia a dia, com foco especial em resolver bem o problema de **cartão de crédito parcelado** — saber quanto fecha na fatura do mês e quanto ainda falta pagar de compras futuras.
+Um app simples e rápido pra registrar movimentações financeiras do dia a dia, usado como PWA instalada no iPhone (mesma experiência de um app nativo, sem passar pela App Store), com foco especial em resolver bem o problema de **cartão de crédito parcelado** — saber quanto fecha na fatura do mês e quanto ainda falta pagar de compras futuras.
 
 Fora do escopo do MVP (planejado para versões futuras):
 - Bot de WhatsApp/Telegram para registro por linguagem natural via Evolution API
@@ -61,20 +61,21 @@ Purchase (compra parcelada)
 
 | Camada | Tecnologia |
 |---|---|
-| Mobile | React Native + Expo |
-| Estilização | NativeWind (Tailwind no RN) |
-| Navegação | Expo Router (file-based) |
+| Web | Vite + React + TypeScript, PWA instalável no iPhone via Safari |
+| Estilização | Tailwind CSS |
+| Navegação | react-router-dom |
 | Backend | Express + TypeScript |
 | ORM | Prisma |
 | Banco de dados | PostgreSQL |
 | Estado/cache no app | TanStack Query (React Query) |
 | Deploy backend | Coolify (Hostinger VPS) |
-| Deploy mobile | Expo (build + OTA updates) |
+| Deploy web | build estático, mesma infra Coolify/Hostinger VPS do backend |
 
 ### Observações técnicas
-- Auth: a definir — em app single-user pode-se simplificar com API key fixa no MVP; se houver plano de multiusuário no futuro, prever autenticação desde já (JWT simples via Express)
+- Auth: implementada — senha single-user trocada por token, mais desbloqueio via Face ID/Touch ID (WebAuthn) nas reaberturas do app. Ver [`web-architecture.md`](./web-architecture.md) e a seção Auth de [`api.md`](./api.md).
 - Backend escolhido como Express + TypeScript (mais simples que NestJS) por ser projeto pessoal de menor complexidade
 - Reaproveita infraestrutura já existente: VPS Hostinger + Coolify
+- O app foi planejado inicialmente como React Native/Expo; pivotou para Vite+React PWA porque a publicação na App Store estava travando o progresso — ver [`web-architecture.md`](./web-architecture.md) para o racional completo
 
 ## Roadmap pós-MVP (ideias para versões futuras)
 - Integração com bot de WhatsApp via Evolution API (já disponível na VPS) para registro por linguagem natural e resumos

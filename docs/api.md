@@ -1,11 +1,11 @@
 # Referência da API (backend)
 
-Contrato dos endpoints do backend, para consumo pelo app mobile. Gerado a partir do código-fonte (`backend/src/{routes,controllers,validators}/`) — se este documento e o código divergirem, o código manda; atualize este arquivo junto de qualquer mudança de rota/schema.
+Contrato dos endpoints do backend, para consumo pelo app web. Gerado a partir do código-fonte (`backend/src/{routes,controllers,validators}/`) — se este documento e o código divergirem, o código manda; atualize este arquivo junto de qualquer mudança de rota/schema.
 
 ## Convenções gerais
 
-- **Base URL**: `http://localhost:3000` (simulador iOS) ou `http://<IP-da-rede-local-do-Mac>:3000` (dispositivo físico via Expo Go — ver `docs/architecture.md`, seção "Conectando com o backend"). Nenhuma rota tem prefixo (`/accounts`, não `/api/accounts`).
-- **Sem autenticação** — decisão consciente do MVP, nenhum header de auth é esperado.
+- **Base URL**: `http://localhost:3000` em dev, ou o domínio de produção quando implantado. Ver `docs/web-architecture.md` para a variável `VITE_API_URL` (precisa ser o IP da rede local do Mac, não `localhost`, ao testar num iPhone físico). Nenhuma rota tem prefixo (`/accounts`, não `/api/accounts`).
+- **Autenticação**: todas as rotas exigem o header `x-api-token`, **exceto** `/health`, `POST /auth/login` e `POST /auth/webauthn/login/*` — ver seção [Auth](#auth) abaixo.
 - **Content-Type**: `application/json` em todos os bodies de request/response.
 - **IDs**: strings `cuid()` geradas pelo Prisma (ex: `"clx1a2b3c..."`), não incrementais.
 - **Datas**: strings ISO 8601 (ex: `"2026-08-01T00:00:00.000Z"`) tanto em request quanto em response. No request, aceitam qualquer formato que `z.coerce.date()` reconheça (`"2026-08-01"` funciona).
@@ -18,7 +18,48 @@ Contrato dos endpoints do backend, para consumo pelo app mobile. Gerado a partir
 
 ## Health check
 
-`GET /health` → `200 { "status": "ok" }`
+`GET /health` → `200 { "status": "ok" }` — the only route with no auth requirement at all.
+
+## Auth
+
+Single-user, sem tabela de usuário. Duas formas de obter um token: senha ou WebAuthn (Face ID/Touch ID). Depois de obtido, envie o token em **todas** as outras rotas (exceto `/health` e os endpoints públicos de `/auth` listados abaixo) no header `x-api-token: <token>`. Sem esse header, ou com um token inválido/expirado, qualquer rota protegida responde `401 { "error": "Não autorizado" }`.
+
+### `POST /auth/login`
+
+| Método | Rota | Body |
+|---|---|---|
+| POST | `/auth/login` | `{ password }` |
+
+- Pública (não exige `x-api-token`). Rate-limited: 5 tentativas / 15 min / IP.
+- Sucesso (200): `{ "token": "<string opaca>" }` — token válido por 90 dias.
+- Falha (401): `{ "error": "Senha inválida" }`.
+
+### `POST /auth/webauthn/register/options` e `/register/verify`
+
+Registra um autenticador de plataforma (Face ID/Touch ID) para reautenticação sem senha. **Exigem `x-api-token` válido** — só é possível registrar logo após um login por senha bem-sucedido, nunca "a frio".
+
+| Método | Rota | Body |
+|---|---|---|
+| POST | `/auth/webauthn/register/options` | — |
+| POST | `/auth/webauthn/register/verify` | `RegistrationResponseJSON` (retorno de `startRegistration()` do `@simplewebauthn/browser`) |
+
+- `register/options` retorna `PublicKeyCredentialCreationOptionsJSON` para passar direto a `startRegistration({ optionsJSON })` no cliente.
+- `register/verify` retorna `{ "registered": true }` em caso de sucesso, ou `400 { "error": "Não foi possível verificar o dispositivo" }`.
+
+### `POST /auth/webauthn/login/options` e `/login/verify`
+
+Públicas (sem `x-api-token`) — é assim que o app reautentica sem digitar a senha.
+
+| Método | Rota | Body |
+|---|---|---|
+| POST | `/auth/webauthn/login/options` | — |
+| POST | `/auth/webauthn/login/verify` | `AuthenticationResponseJSON` (retorno de `startAuthentication()`) |
+
+- `login/options` → `404 { "error": "Nenhum dispositivo registrado" }` se nenhum autenticador foi registrado ainda; senão retorna `PublicKeyCredentialRequestOptionsJSON`.
+- `login/verify` → sucesso (200): `{ "token": "..." }`, mesmo formato/duração do token de senha. Falha: `401`.
+- Rate-limited igual ao `/auth/login`.
+
+⚠️ O desafio (`challenge`) de cada fluxo de registro/login fica em memória no processo do backend (single-user, single instância) — não há sessão nem store externo. Um desafio é consumido (ou substituído) a cada chamada de `*/options`, então dois registros/logins concorrentes não são suportados — irrelevante para um app single-user.
 
 ## Categories
 
@@ -195,6 +236,5 @@ Só para contas `tipo === "CARTAO_CREDITO"` — outro tipo retorna `400 { "error
 ## O que não existe ainda
 
 - Paginação em nenhuma rota de listagem (`GET /accounts`, `/transactions`, `/purchases`, `/categories` retornam tudo).
-- Autenticação (fora de escopo do MVP).
 - `PUT`/edição de Purchase.
 - Include de relações (category/account) nos endpoints que retornam Transaction — sempre vêm só os IDs.

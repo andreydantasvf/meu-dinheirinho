@@ -70,6 +70,16 @@ model Purchase {
   @@map("purchases")
 }
 
+model WebauthnCredential {
+  id           String   @id @default(cuid())
+  credentialId String   @unique @map("credential_id")
+  publicKey    Bytes    @map("public_key")
+  counter      BigInt
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("webauthn_credentials")
+}
+
 model Transaction {
   id            String          @id @default(cuid())
   accountId     String          @map("account_id")

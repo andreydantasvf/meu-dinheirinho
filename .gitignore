@@ -21,12 +21,4 @@
 # Backend build output
 backend/dist/
 backend/src/generated/
-
-# Expo / React Native
-mobile/.expo/
-mobile/.expo-shared/
-mobile/dist/
-mobile/web-build/
-mobile/*.orig.*
-mobile/ios/
-mobile/android/
+backend/*.tsbuildinfo
