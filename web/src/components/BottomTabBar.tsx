@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 const tabs = [
   { to: '/', label: 'Início', end: true },
@@ -9,14 +10,17 @@ const tabs = [
 
 export function BottomTabBar() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 flex border-t border-neutral-200 bg-white pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed inset-x-0 bottom-0 flex border-t border-border bg-background pb-[env(safe-area-inset-bottom)]">
       {tabs.map((tab) => (
         <NavLink
           key={tab.to}
           to={tab.to}
           end={tab.end}
           className={({ isActive }) =>
-            `flex-1 py-3 text-center text-sm ${isActive ? 'font-semibold text-teal-700' : 'text-neutral-500'}`
+            cn(
+              'flex-1 py-3 text-center text-sm',
+              isActive ? 'font-semibold text-primary' : 'text-muted-foreground',
+            )
           }
         >
           {tab.label}

@@ -11,6 +11,8 @@ import {
   loginWithPasskey,
   registerPasskey,
 } from '../lib/webauthn';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -74,59 +76,57 @@ export default function Login() {
 
   if (offerPasskey) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background p-6 text-center text-foreground">
         <h1 className="text-xl font-semibold">Ativar Face ID / Touch ID?</h1>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted-foreground">
           Assim você não precisa digitar a senha nas próximas vezes.
         </p>
-        <button
+        <Button
           onClick={handleRegisterPasskey}
-          className="w-full max-w-xs rounded-lg bg-teal-700 px-4 py-3 text-white"
+          className="w-full max-w-xs"
+          size="lg"
         >
           Ativar
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
           onClick={() => navigate('/', { replace: true })}
-          className="text-sm text-neutral-500"
+          className="text-muted-foreground"
         >
           Agora não
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background p-6 text-foreground">
       <h1 className="text-xl font-semibold">Meu Dinheirinho</h1>
       <form
         onSubmit={handlePasswordLogin}
         className="flex w-full max-w-xs flex-col gap-3"
       >
-        <input
+        <Input
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           placeholder="Senha"
-          className="rounded-lg border border-neutral-300 px-4 py-3"
           autoFocus
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-lg bg-teal-700 px-4 py-3 text-white disabled:opacity-50"
-        >
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <Button type="submit" disabled={loading} size="lg">
           Entrar
-        </button>
+        </Button>
       </form>
       {canUsePasskey && (
-        <button
+        <Button
+          variant="link"
           onClick={handlePasskeyLogin}
           disabled={loading}
-          className="text-sm text-teal-700"
+          className="text-primary"
         >
           Entrar com Face ID / Touch ID
-        </button>
+        </Button>
       )}
     </div>
   );

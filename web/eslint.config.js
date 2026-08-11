@@ -26,4 +26,16 @@ export default tseslint.config([
       ],
     },
   },
+  {
+    // shadcn/ui-generated primitives (regenerated via CLI, not hand-edited) and our
+    // theme-provider (which intentionally pairs a provider component with a useTheme hook)
+    // export non-component values alongside components — expected for both.
+    files: [
+      'src/components/ui/**/*.{ts,tsx}',
+      'src/components/theme-provider.tsx',
+    ],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ]);
