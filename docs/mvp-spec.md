@@ -66,7 +66,7 @@ Purchase (compra parcelada)
 | Navegação | react-router-dom |
 | Backend | Express + TypeScript |
 | ORM | Prisma |
-| Banco de dados | PostgreSQL |
+| Banco de dados | SQLite |
 | Estado/cache no app | TanStack Query (React Query) |
 | Deploy backend | Coolify (Hostinger VPS) |
 | Deploy web | build estático, mesma infra Coolify/Hostinger VPS do backend |

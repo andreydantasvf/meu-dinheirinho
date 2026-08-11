@@ -110,7 +110,7 @@ Response de um Account:
 }
 ```
 
-⚠️ `DELETE /accounts/:id` numa conta que ainda tem transações/compras associadas falha com **500 genérico** (violação de FK no Postgres não é mapeada para um erro amigável ainda — problema conhecido, não corrigido neste momento). Trate isso no mobile como "não foi possível excluir, a conta tem lançamentos" até o backend mapear para um 409.
+⚠️ `DELETE /accounts/:id` numa conta que ainda tem transações/compras associadas falha com **500 genérico** (violação de foreign key não é mapeada para um erro amigável ainda — problema conhecido, não corrigido neste momento, confirmado também depois da migração pra SQLite). Trate isso no cliente como "não foi possível excluir, a conta tem lançamentos" até o backend mapear para um 409.
 
 ## Transactions
 

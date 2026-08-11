@@ -1,6 +1,6 @@
 # Meu Dinheirinho — Backend
 
-Express + TypeScript + Prisma + PostgreSQL, com estrutura em camadas: `routes` → `controllers` → `services` → `repositories`.
+Express + TypeScript + Prisma + SQLite, com estrutura em camadas: `routes` → `controllers` → `services` → `repositories`.
 
 ## Requisitos
 
@@ -14,9 +14,8 @@ cp .env.example .env   # já feito no setup inicial
 docker compose up --build
 ```
 
-Isso sobe dois containers:
-- `postgres`: banco de dados, com o volume `pgdata` persistente. Exposto no host em `localhost:5433` (5432 já estava em uso por outro projeto nesta máquina).
-- `api`: Express rodando com `tsx watch` (hot reload). Código-fonte é bind-mounted, então qualquer alteração em `src/` reinicia o servidor automaticamente. Exposto em `localhost:3000`.
+Isso sobe um único container:
+- `api`: Express rodando com `tsx watch` (hot reload). Código-fonte é bind-mounted, então qualquer alteração em `src/` reinicia o servidor automaticamente. Exposto em `localhost:3000`. O banco SQLite (`prisma/dev.db`) fica dentro desse mesmo bind mount, então persiste no host normalmente — não há container de banco separado nem volume nomeado.
 
 Primeira vez rodando (ou após alterar `prisma/schema.prisma`):
 
@@ -26,20 +25,18 @@ docker compose exec api pnpm prisma migrate dev --name <nome_da_migration>
 
 ## Endpoints disponíveis
 
-- `GET /health` — healthcheck
-- `GET /categories`, `POST /categories`, `GET /categories/:id`, `PUT /categories/:id`, `DELETE /categories/:id` — CRUD de exemplo (fatia vertical completa: route → controller → service → repository). Use como referência para implementar Account, Purchase e Transaction.
+Ver [`../docs/api.md`](../docs/api.md) para o contrato completo. `GET /health` é pública; todo o resto exige o header `x-api-token` (ver a seção Auth desse documento).
 
 ## Comandos úteis
 
 ```bash
 docker compose exec api pnpm prisma studio       # abrir Prisma Studio
-docker compose exec postgres psql -U postgres -d meu_dinheirinho   # psql direto no container
 docker compose logs -f api                        # acompanhar logs da API
 ```
 
 ## Observações
 
-- **Sem autenticação** nesta fase do MVP — API aberta.
-- `DATABASE_URL` no `.env` aponta para o host `postgres` (nome do serviço no compose). Se algum dia rodar a API fora do Docker contra o mesmo Postgres, troque para `localhost:5433` nessa variável.
-- Prisma 7 exige um driver adapter — usamos `@prisma/adapter-pg` (`src/lib/prisma.ts`), não dá para instanciar `PrismaClient()` puro.
-- Campos monetários usam `Decimal` do Prisma (não `number`), para evitar erro de arredondamento de float.
+- Autenticação mínima single-user (senha + WebAuthn/Face ID) — ver [`../docs/api.md`](../docs/api.md).
+- Prisma 7 exige um driver adapter — usamos `@prisma/adapter-better-sqlite3` (`src/lib/prisma.ts`), não dá para instanciar `PrismaClient()` puro.
+- `better-sqlite3` compila nativamente; o `Dockerfile` instala `python3 make g++` no estágio base para isso funcionar no Alpine.
+- Campos monetários usam `Decimal` do Prisma (não `number`), para evitar erro de arredondamento de float — sem `@db.Decimal(...)` (native type específico do Postgres, não suportado no SQLite).

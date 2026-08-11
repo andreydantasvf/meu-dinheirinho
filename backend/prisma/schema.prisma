@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
 }
 
 enum AccountType {
@@ -28,7 +28,7 @@ model Account {
   id            String      @id @default(cuid())
   nome          String
   tipo          AccountType
-  limite        Decimal?    @db.Decimal(12, 2)
+  limite        Decimal?
   diaFechamento Int?        @map("dia_fechamento")
   diaVencimento Int?        @map("dia_vencimento")
   createdAt     DateTime    @default(now()) @map("created_at")
@@ -57,7 +57,7 @@ model Purchase {
   id             String   @id @default(cuid())
   accountId      String   @map("account_id")
   categoryId     String   @map("category_id")
-  valorTotal     Decimal  @db.Decimal(12, 2) @map("valor_total")
+  valorTotal     Decimal  @map("valor_total")
   descricao      String
   dataCompra     DateTime @map("data_compra")
   numeroParcelas Int      @map("numero_parcelas")
@@ -84,7 +84,7 @@ model Transaction {
   id            String          @id @default(cuid())
   accountId     String          @map("account_id")
   categoryId    String          @map("category_id")
-  valor         Decimal         @db.Decimal(12, 2)
+  valor         Decimal
   descricao     String
   data          DateTime
   tipo          TransactionType

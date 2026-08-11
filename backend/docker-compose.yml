@@ -1,21 +1,4 @@
 services:
-  postgres:
-    image: postgres:18-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: meu_dinheirinho
-    ports:
-      - '5433:5432'
-    volumes:
-      - pgdata:/var/lib/postgresql
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   api:
     build:
       context: .
@@ -23,16 +6,8 @@ services:
       target: dev
     restart: unless-stopped
     env_file: .env
-    environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/meu_dinheirinho?schema=public
     ports:
       - '3000:3000'
     volumes:
       - .:/app
       - /app/node_modules
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-volumes:
-  pgdata:

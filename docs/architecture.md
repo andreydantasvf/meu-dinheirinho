@@ -6,7 +6,7 @@ Este documento registra como o backend foi montado no setup inicial (agosto/2026
 
 Monorepo com duas pastas **totalmente independentes** (sem workspaces pnpm/npm compartilhado — cada uma tem seu próprio lockfile):
 
-- `backend/` — API Express + TypeScript + Prisma + PostgreSQL, dockerizada.
+- `backend/` — API Express + TypeScript + Prisma + SQLite, dockerizada.
 - `web/` — App Vite + React PWA.
 
 Essa independência foi uma escolha deliberada: não há código compartilhado hoje (tipos/DTOs), então workspaces adicionariam complexidade sem benefício.
@@ -19,12 +19,17 @@ Essa independência foi uma escolha deliberada: não há código compartilhado h
 
 A fatia vertical de `Category` (`src/{routes,controllers,services,repositories,validators}/category.*`) é o template de referência para implementar Account, Purchase e Transaction — todas as quatro (mais a fatia de agregação `reports.*`) já estão implementadas. Ver [`api.md`](./api.md) para o contrato completo de rotas/payloads.
 
-### Prisma 7 — pontos não óbvios
+### Banco de dados: SQLite (não Postgres)
 
-- **Driver adapter é obrigatório**: `new PrismaClient()` sem adapter lança erro em runtime na v7. Usamos `@prisma/adapter-pg` (`src/lib/prisma.ts`).
+Trocado de PostgreSQL para SQLite pouco depois do setup inicial — projeto pessoal single-user, sem necessidade real de um servidor de banco separado. Um arquivo (`prisma/dev.db`) é suficiente e elimina um container inteiro (`postgres`) do dia a dia.
+
+- **Driver adapter**: `@prisma/adapter-better-sqlite3` + `better-sqlite3` (`src/lib/prisma.ts`). Prisma 7 exige adapter mesmo para SQLite — `new PrismaClient()` puro continua não funcionando.
+- **`better-sqlite3` compila nativamente** (bindings C++ via `node-gyp`) — não tem prebuild para o Alpine (musl) usado no `Dockerfile`, então o estágio `base` precisa de `apk add python3 make g++` antes do `pnpm install`, senão o build da imagem falha em "Could not find any Python installation".
+- **`DATABASE_URL`** usa o formato `file:./prisma/dev.db` (caminho relativo ao diretório de onde o comando roda — `backend/`, tanto local quanto dentro do container). O código em `lib/prisma.ts` remove o prefixo `file:` antes de passar pro adapter, que espera um caminho de arquivo puro, não uma URL.
+- **Sem `@db.Decimal(12, 2)`**: esse native type attribute é específico do conector Postgres — o SQLite rejeita a validação do schema com ele (`Native type Decimal is not supported for sqlite connector`). Removido dos campos monetários; o tipo Prisma `Decimal` sozinho já basta.
+- ⚠️ **Verificado na prática, não só na documentação do Prisma**: mesmo o SQLite armazenando `DECIMAL`/`NUMERIC` com afinidade de tipo (que pode cair pra `REAL`/ponto flutuante binário internamente), o client do Prisma continua devolvendo um `Decimal` (`decimal.js`) que serializa como **string** em JSON — testado com valores classicamente problemáticos em float (`0.1`, `150.55`) e o round-trip bateu exato. O contrato "Decimal como string" documentado em [`api.md`](./api.md) **não mudou** com a troca de banco.
 - **Import do client gerado**: `generator client { provider = "prisma-client" }` (não `prisma-client-js`) gera código em `src/generated/prisma/` **sem** um `index.ts` — o import correto é de `../generated/prisma/client`, não do diretório.
 - **`prisma.config.ts`** na raiz do backend substitui o antigo bloco `"prisma"` no `package.json` — `migrate`/`studio` dependem dele para achar o schema e o `DATABASE_URL`.
-- Campos monetários usam `Decimal @db.Decimal(12, 2)` (não `Int`/`Float`) para evitar erro de arredondamento — no código isso chega como `Decimal` do `decimal.js`, não `number`.
 
 ### TypeScript em CommonJS (não ESM)
 
@@ -44,9 +49,9 @@ A fatia de `reports.*` (`repository`/`service`/`controller`/`routes` sob `dashbo
 
 - `docker-compose.yml` mora em `backend/` (não na raiz do repo) — reforça que o backend é uma unidade auto-contida, do jeito que o Coolify vai consumir no deploy.
 - Um único `Dockerfile` multi-stage (`dev` / `build` / `prod`). O dia a dia usa o estágio `dev` (`tsx watch`, hot reload via bind mount de `backend/:/app` + volume anônimo em `/app/node_modules` para não deixar o host sobrescrever o `node_modules` buildado pro Linux do container).
-- **Porta do Postgres no host é `5433`, não `5432`** — a 5432 já estava ocupada por outro projeto nesta máquina. Internamente (container-to-container) continua `postgres:5432` normalmente.
-- Imagem `postgres:18-alpine`: o Postgres 18 mudou o layout de dados no container — o volume precisa montar em `/var/lib/postgresql` (não mais `/var/lib/postgresql/data`), senão o container recusa subir com dado pré-existente.
-- `ENV DATABASE_URL=...` no `Dockerfile` (estágio `base`) existe só como placeholder para o `prisma generate` (rodado via `postinstall`) conseguir resolver a variável durante o build da imagem — em runtime o `docker-compose.yml` sobrescreve com o valor real via `environment:`.
+- **Só um serviço no compose (`api`)** — desde a troca pra SQLite não existe mais container de banco separado. O arquivo `prisma/dev.db` fica dentro do bind mount `.:/app`, então persiste no host normalmente entre restarts do container, sem precisar de um volume nomeado dedicado (ao contrário do antigo `pgdata`).
+- `ENV DATABASE_URL=...` no `Dockerfile` (estágio `base`) existe só como placeholder para o `prisma generate` (rodado via `postinstall`) conseguir resolver a variável durante o build da imagem — em runtime o `env_file: .env` do `docker-compose.yml` sobrescreve com o valor real.
+- ⚠️ **Deploy em produção** (Coolify) ainda não foi executado — quando for, o estágio `prod` do `Dockerfile` não tem bind mount, então o arquivo SQLite precisa de um volume nomeado explícito para não ser perdido a cada deploy/restart do container. Não modelado neste repo ainda.
 
 ## Web
 

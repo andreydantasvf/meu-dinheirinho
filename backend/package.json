@@ -21,14 +21,14 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/adapter-better-sqlite3": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@simplewebauthn/server": "^13.3.2",
+    "better-sqlite3": "^13.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.0.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.2",
-    "pg": "^8.13.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -36,7 +36,6 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",
-    "@types/pg": "^8.11.0",
     "eslint": "^10.8.1",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.4.0",
@@ -45,5 +44,8 @@
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.66.0",
     "vitest": "^4.1.10"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3"]
   }
 }

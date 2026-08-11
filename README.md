@@ -4,8 +4,8 @@ App pessoal de controle financeiro (entradas, saídas, cartão de crédito e com
 
 ## Estrutura
 
-- [`backend/`](./backend) — API em Express + TypeScript + Prisma + PostgreSQL.
-- [`mobile/`](./mobile) — App em React Native + Expo.
+- [`backend/`](./backend) — API em Express + TypeScript + Prisma + SQLite.
+- [`web/`](./web) — App Vite + React, PWA instalável no iPhone via Safari.
 - [`docs/`](./docs) — spec do produto, arquitetura e decisões técnicas, e futuras specs de novas funcionalidades.
 
-Cada pasta de projeto (`backend/`, `mobile/`) é independente, com seu próprio `package.json` e README com instruções específicas de setup.
+Cada pasta de projeto (`backend/`, `web/`) é independente, com seu próprio `package.json` e README com instruções específicas de setup.

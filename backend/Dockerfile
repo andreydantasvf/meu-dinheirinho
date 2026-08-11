@@ -3,9 +3,12 @@
 FROM node:24-alpine AS base
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.29.3 --activate
+# better-sqlite3 has no prebuilt binary for this platform, so it compiles from source via
+# node-gyp — needs Python + a C++ toolchain, not present in the base alpine image.
+RUN apk add --no-cache python3 make g++
 # Placeholder so `prisma generate` (run via postinstall) can resolve DATABASE_URL at build time.
-# Overridden at runtime by docker-compose's `environment:` for the real connection.
-ENV DATABASE_URL="postgresql://postgres:postgres@postgres:5432/meu_dinheirinho?schema=public"
+# Overridden at runtime by the real .env value (see docker-compose.yml's env_file).
+ENV DATABASE_URL="file:./prisma/dev.db"
 
 # ---- dev: full deps, hot reload via tsx watch, source bind-mounted by compose ----
 FROM base AS dev

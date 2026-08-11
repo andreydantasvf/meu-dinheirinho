@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Monorepo with two **fully independent** projects (no shared workspaces, separate lockfiles) plus a docs folder:
 
-- `backend/` — Express + TypeScript + Prisma + PostgreSQL API.
+- `backend/` — Express + TypeScript + Prisma + SQLite API.
 - `web/` — Vite + React PWA, installable on iPhone via Safari "Add to Home Screen" (replaces an earlier React Native/Expo mobile app that was abandoned before publishing — see `docs/web-architecture.md` for why).
 - `docs/` — product spec (`docs/mvp-spec.md`), technical architecture/decisions log (`docs/architecture.md`), the backend API reference (`docs/api.md`), and the web app's own spec (`docs/web-mvp-spec.md`) and architecture doc (`docs/web-architecture.md`). Read `docs/architecture.md` before making non-trivial backend changes — it documents several non-obvious setup decisions (Prisma 7 driver-adapter requirement, Docker port/volume quirks, etc.) that aren't visible from the code alone. Read `docs/web-architecture.md` before making non-trivial changes in `web/` — it covers the PWA/iOS install caveats and the auth flow. Read `docs/api.md` before writing any screen that calls the backend — it has every route, request/response shape, and the Decimal-as-string serialization gotcha (money fields arrive as e.g. `"100.5"`, not a fixed-2-decimal string or a JS number).
 
@@ -18,10 +18,9 @@ Both projects use **pnpm**, not npm/yarn.
 
 ```bash
 cd backend
-docker compose up --build       # start API + Postgres (day-to-day dev loop, hot reload via tsx watch)
+docker compose up --build       # start the API in Docker (day-to-day dev loop, hot reload via tsx watch)
 docker compose exec api pnpm prisma migrate dev --name <name>   # run after editing prisma/schema.prisma
 docker compose exec api pnpm prisma studio
-docker compose exec postgres psql -U postgres -d meu_dinheirinho
 docker compose logs -f api
 
 pnpm lint                       # eslint
@@ -34,15 +33,15 @@ pnpm test:watch                 # vitest
 
 Tests are colocated as `*.test.ts` next to the source file (e.g. `account.schema.test.ts` beside `account.schema.ts`), not in a separate `__tests__` folder. Coverage is unit-level only — services (repository mocked) and pure functions (validators, `report-calculations.ts`) — no integration/HTTP tests.
 
-The API is exposed at `localhost:3000`; Postgres at `localhost:5433` (5432 was already taken by another local project — internal container-to-container traffic still uses `postgres:5432`).
+The API is exposed at `localhost:3000`. There's no separate database container — SQLite lives in a single file, `prisma/dev.db`, inside the bind-mounted `backend/` directory, so it persists on the host across container restarts without a named volume.
 
 ### Architecture
 
 Layered: `routes` → `controllers` → `services` → `repositories`. **Only repositories import the Prisma client** (`src/lib/prisma.ts`) — services call repositories and hold business rules (e.g. throwing `AppError` for a 404), they never touch Prisma directly. The `category.*` files across all four layers are the reference vertical slice to copy when implementing `Account`, `Purchase`, and `Transaction`.
 
-Prisma 7 requires a driver adapter — `new PrismaClient()` without one throws at runtime; this project uses `@prisma/adapter-pg` (see `src/lib/prisma.ts`). The generated client has no `index.ts`; import from `../generated/prisma/client`. `prisma.config.ts` at the backend root (not `package.json`) configures the schema path and `DATABASE_URL` for `migrate`/`studio`.
+Prisma 7 requires a driver adapter — `new PrismaClient()` without one throws at runtime; this project uses `@prisma/adapter-better-sqlite3` (see `src/lib/prisma.ts`). `better-sqlite3` compiles native bindings via `node-gyp`, which is why the `Dockerfile` installs `python3 make g++` before `pnpm install` — the base `node:24-alpine` image doesn't have a C++ toolchain. The generated client has no `index.ts`; import from `../generated/prisma/client`. `prisma.config.ts` at the backend root (not `package.json`) configures the schema path and `DATABASE_URL` for `migrate`/`studio`.
 
-Money fields are Prisma `Decimal` (`@db.Decimal(12, 2)`), not `number` — format/parse explicitly, don't treat them as JS numbers.
+Money fields are Prisma `Decimal`, not `number` — format/parse explicitly, don't treat them as JS numbers. No `@db.Decimal(...)` native type attribute (that's Postgres-only and fails schema validation on SQLite); plain `Decimal` is enough, and it still round-trips exact precision and serializes as a JSON string, verified directly against classic float traps (`0.1`, `150.55`) after the SQLite migration.
 
 **Auth**: single-user, minimal by design (see `docs/api.md`'s Auth section for full request/response shapes). `POST /auth/login` (password) and the `/auth/webauthn/*` routes (Face ID/Touch ID) are the only public routes besides `/health`; every other route requires a valid `x-api-token` header, checked by `requireAuth` middleware (`src/middlewares/require-auth.ts`). No user table, no multi-user support — the password and token-signing secret live in env vars (`AUTH_PASSWORD`, `AUTH_TOKEN_SECRET`).
 

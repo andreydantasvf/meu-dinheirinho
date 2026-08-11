@@ -22,3 +22,6 @@
 backend/dist/
 backend/src/generated/
 backend/*.tsbuildinfo
+
+# SQLite database file (local dev data, not committed)
+backend/prisma/dev.db*
