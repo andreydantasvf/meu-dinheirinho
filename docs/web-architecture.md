@@ -36,9 +36,28 @@ Estrutura em `src/App.tsx`:
 
 ## Estado do que é real vs. placeholder
 
-Só `Home` (`src/routes/Home.tsx`) e `Login` (`src/routes/Login.tsx`) têm lógica de verdade nesta fase. `Extrato`, `Cartoes`, `Categorias`, `NovaTransacao`, `NovaCompraParcelada` são shells (só o título) — mesmo estado em que o `mobile/` abandonado estava antes de virar este app web.
+Todas as 6 telas do MVP (`Home`, `Extrato`, `Cartoes`, `Categorias`, `NovaTransacao`, `NovaCompraParcelada`) têm lógica de negócio real e completa contra o backend, além de `Login`.
 
-`Home` chama `GET /categories` (rota **protegida**), não `/health` (que é pública) — escolha deliberada: provar que o token de auth está sendo enviado e aceito de ponta a ponta é mais valioso nesta fase do que só provar que a API está no ar.
+`Home` chama `GET /categories` (rota **protegida**), não `/health` (que é pública) — escolha deliberada: provar que o token de auth está sendo enviado e aceito de ponta a ponta é mais valioso do que só provar que a API está no ar.
+
+## Design system e camada de dados
+
+Fundação técnica construída sobre o esqueleto acima (roteamento, auth, Tailwind, PWA já existentes): shadcn/ui, dark/light mode, TanStack Query, formulários. Pontos não óbvios:
+
+**shadcn/ui**: instalado via `pnpm dlx shadcn@latest init` — a versão atual do CLI (v4.x) é uma reescrita relevante em relação aos tutoriais mais antigos: pede para escolher entre `base`/`radix`/`aria` como biblioteca headless (usamos `radix`), usa presets de estilo nomeados (`nova`, `vega`, ...) em vez de `new-york`/`default`, e **não existe mais um componente `form`** no registry — o equivalente é `field` (`src/components/ui/field.tsx`, primitivos de layout: `Field`, `FieldLabel`, `FieldError`...), usado manualmente junto com `react-hook-form` + `zod` (não há wrapper `Form`/`FormField` pronto). `components.json` fica na raiz de `web/`; tudo em `src/components/ui/*` é regenerado via CLI (`pnpm dlx shadcn@latest add <componente>`), não editado à mão.
+
+**Paleta de gráficos**: o preset `nova` com base color `neutral` gera `--chart-1` a `--chart-5` em tons de cinza (`oklch(_ 0 0)`, croma zero) — inofensivo para botões/bordas, mas inutilizável para diferenciar séries num gráfico. Sobrescritos em `src/index.css` com uma paleta categórica de 5 cores distintas (teal/âmbar/azul/rosa/violeta), com uma variante mais clara no bloco `.dark` para contraste.
+
+**Dark/light mode**: `ThemeProvider` próprio (`src/components/theme-provider.tsx`, ~40 linhas) em vez de `next-themes` — essa lib assume Next.js e não se aplica a um Vite SPA. Aplica a classe `dark` na tag `<html>`, persiste a escolha (`light`/`dark`/`system`) em `localStorage`. Toggle vive num `Sheet` de configurações, acessível pelo ícone no `AppHeader` (novo, dentro de `TabsLayout`).
+
+**TanStack Query**: `src/lib/query-keys.ts` centraliza as chaves por entidade; `src/hooks/use-*.ts` (um arquivo por entidade) expõe os hooks de query e mutation sobre o `apiFetch` já existente — mutations invalidam as queries relacionadas no `onSuccess` (ex.: criar uma transação invalida `transactions`, `dashboard` e a `fatura` da conta envolvida).
+
+**Formulários**: `react-hook-form` + `zod` (`zodResolver`). Dois gotchas encontrados na prática:
+
+1. **Campo `Select` controlado (`useController`) num formulário de edição não pré-preenche.** Sintoma: o valor certo chega em `watch()`/`getValues()`, mas o `<Select>` continua mostrando o placeholder. Causa: quando a tela tem um gate de loading (`if (isLoadingX) return <Loading/>`) e o `useForm`/`reset()` só populam os campos DEPOIS que os dados assíncronos chegam, o primeiro mount real do `Select` (que só acontece quando o gate libera) corre em paralelo com esse `reset()` — o controller registra com o valor "vazio" antes do reset propagar. Corrigido evitando `reset()`/`values` numa `useEffect` para esse caso: mover o gate de loading para um componente **externo** ao que chama `useForm`, e computar `defaultValues` diretamente a partir do dado já carregado (ver `NovaTransacao.tsx`, componente `TransactionForm` separado de `NovaTransacao`). Formulários de edição que abrem via `Dialog` com o registro já disponível como prop (ex. `CategoryFormDialog`, `AccountFormDialog`) não têm esse problema — `reset()` numa `useEffect` funciona normalmente porque não há essa corrida com um carregamento assíncrono.
+2. **`z.preprocess` no schema quebra a inferência de tipo do `zodResolver` só no build de produção.** `tsc -b` (usado por `pnpm build`) é mais estrito que `tsc --noEmit` e falha com um campo `unknown` quando o schema usa `z.preprocess` para tratar string vazia → `undefined` (caso dos campos numéricos opcionais de conta/cartão). Corrigido tratando a conversão no `register(nome, { setValueAs: ... })` em vez de no schema zod.
+
+**Input de dinheiro**: `MoneyInput` (`src/components/money-input.tsx`) é um input mascarado baseado em centavos inteiros — digita da direita para a esquerda como um caixa eletrônico, formata via `Intl.NumberFormat('pt-BR', ...)`, converte para a string decimal que a API espera (`lib/money.ts`). Evita todo o parsing ambíguo de separador decimal vs. milhar.
 
 ## Autenticação — fluxo completo
 
@@ -68,6 +87,8 @@ Motivação: o backend passa a estar acessível pela internet pública (não só
 
 `vite.config.ts` define `server.host: true` para o dev server bindar em `0.0.0.0` — sem isso, o Vite dentro do container só escuta em `localhost` do próprio container, inacessível a partir do host.
 
+**Gotcha: instalar uma dependência nova no host não basta para o container enxergá-la.** O volume anônimo `/app/node_modules` (declarado em `web/docker-compose.yml` para não deixar o bind mount `.:/app` sobrescrever o `node_modules` instalado na imagem) sobrevive a um `docker compose up --build` sozinho — o container recém-criado reusa o volume antigo, com o `node_modules` de antes da instalação. Depois de rodar `pnpm add <pkg>` (ou `pnpm dlx shadcn@latest add ...`) no host, é preciso `docker compose up --build --force-recreate -V` (o `-V` remove os volumes anônimos) para o container instalar de fato a dependência nova — só `--build` não é suficiente e falha silenciosamente com um erro de import não resolvido no Vite.
+
 ## Deploy em produção (planejado, ainda não executado)
 
 Estágio `prod` do `Dockerfile` (build estático + `nginx`) na mesma infraestrutura Coolify/Hostinger VPS já usada pelo backend — outra aplicação no mesmo Coolify, domínio próprio (necessário para HTTPS real e para o `rpID` do WebAuthn funcionar fora de `localhost`).
@@ -83,7 +104,7 @@ Web Push (Push API + Service Worker) documentado aqui como próximo passo, não 
 
 ## O que ainda não existe
 
-- Lógica de negócio real em Extrato, Cartões, Categorias, Nova transação e Nova compra parcelada (todas placeholders — ver seção acima).
+- Testes automatizados no `web/` — decisão deliberada por ora (diferente do `backend/`, que usa Vitest); a arquitetura (funções puras em `lib/`, hooks isolados) foi montada para não bloquear adicionar testes depois, mas nenhum existe hoje.
 - Web Push notifications (ver seção acima).
 - Deploy em produção (domínio + HTTPS + Coolify) — necessário antes de testar Face ID fora de `localhost`.
 - Ícones de marca reais (os atuais são placeholders sólidos gerados por script).

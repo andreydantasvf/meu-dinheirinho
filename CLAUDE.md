@@ -60,13 +60,17 @@ pnpm format                  # prettier --write
 pnpm exec tsc --noEmit       # type-check
 ```
 
-No test framework is configured yet.
+No test framework is configured yet (deliberate for now, not an oversight — see `docs/web-architecture.md`).
+
+After installing a new dependency on the host (`pnpm add`, `pnpm dlx shadcn@latest add ...`) while the Docker dev container is already running, `docker compose up --build` alone is **not** enough — the anonymous `node_modules` volume survives a plain rebuild. Use `docker compose up --build --force-recreate -V` (the `-V` drops anonymous volumes) or the container keeps the pre-install `node_modules` and the new import fails silently.
 
 ### Architecture
 
 Vite + React + TypeScript, installable as a PWA via Safari's "Add to Home Screen" on iOS — this replaces an earlier React Native/Expo mobile app that was abandoned before publishing to the App Store (see `docs/web-architecture.md` for the full rationale and iOS-specific caveats).
 
-`react-router-dom` routing: a `TabsLayout` wraps the four tab screens (Home, Extrato, Cartões, Categorias) with a bottom tab bar; `NovaTransacao` and `NovaCompraParcelada` are modal-style routes rendered outside the tab layout; `Login` is the only unguarded route (guarded by `RequireAuth`, `src/components/RequireAuth.tsx`). All screens are placeholders except Home, which does a real TanStack Query call to the backend's `/categories` endpoint (`lib/api.ts`, `lib/query-client.ts`) — a protected route was chosen deliberately over `/health` (which is public) so this screen proves the `x-api-token` round-trip, not just that the API is reachable.
+`react-router-dom` routing: a `TabsLayout` wraps the four tab screens (Home, Extrato, Cartões, Categorias) with a bottom tab bar; `NovaTransacao` and `NovaCompraParcelada` are modal-style routes rendered outside the tab layout; `Login` is the only unguarded route (guarded by `RequireAuth`, `src/components/RequireAuth.tsx`). All 6 screens have real business logic against the backend, on top of `lib/api.ts` (raw fetch wrapper) and per-entity TanStack Query hooks in `src/hooks/` (query keys centralized in `lib/query-keys.ts`).
+
+**Design system**: shadcn/ui (`components.json`, primitives in `src/components/ui/*`, regenerate via `pnpm dlx shadcn@latest add <name>` rather than hand-editing) with a custom `ThemeProvider` for dark/light/system mode (not `next-themes`, which is Next-only). Forms use `react-hook-form` + `zod`; shadcn's newer CLI has no `Form`/`FormField` wrapper, so forms are built manually from the `field` primitives. See `docs/web-architecture.md#design-system-e-camada-de-dados` for two non-obvious bugs hit while building this (a `Select`-prefill race condition in async-loaded edit forms, and a `z.preprocess` type-inference break that only surfaces in `tsc -b`/`pnpm build`, not `tsc --noEmit`) — worth reading before adding another form or another controlled `Select`.
 
 **Auth flow**: `Login` posts a password to `/auth/login` and stores the returned token (`lib/auth.ts`, `localStorage`). Every subsequent request from `lib/api.ts` sends that token as the `x-api-token` header; a `401` response clears the token and hard-redirects to `/login`. After the first successful login, the app offers to register a WebAuthn platform authenticator (Face ID/Touch ID) via `lib/webauthn.ts` — reopening the app afterward can re-authenticate through that instead of retyping the password. WebAuthn requires a secure context: it works over `localhost` for local dev, but in production needs the real deployed domain over HTTPS (the `rpID` must match the served origin's hostname) — see `docs/web-architecture.md`.
 

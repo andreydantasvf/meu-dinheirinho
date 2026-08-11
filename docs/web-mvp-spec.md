@@ -18,7 +18,7 @@ As 6 telas e o modelo de dados são os mesmos definidos em [`mvp-spec.md`](./mvp
 5. Cartões
 6. Categorias (CRUD simples)
 
-Estado atual desta sessão: apenas a navegação e a Home (que faz uma chamada real e protegida a `GET /categories`, provando a integração com a API e o fluxo de autenticação) estão implementadas. As demais 5 telas são placeholders — o trabalho de UI/lógica de negócio de cada uma é um próximo passo.
+Estado atual: as 6 telas têm lógica de negócio real e completa contra o backend, além de um design system próprio (shadcn/ui, dark/light mode, TanStack Query, formulários com react-hook-form + zod) — ver [`web-architecture.md`](./web-architecture.md#design-system-e-camada-de-dados) para os detalhes técnicos.
 
 ## Autenticação (novo — não existia no mobile)
 
@@ -41,4 +41,4 @@ Não há multiusuário, cadastro de conta ou recuperação de senha — é delib
 - [x] Login por senha funcionando ponta a ponta contra o backend.
 - [x] Registro e reautenticação via Face ID/Touch ID (WebAuthn) funcionando.
 - [x] Navegação por abas + duas rotas modais espelhando as 6 telas do MVP.
-- [ ] Lógica de negócio real em Extrato, Cartões, Categorias, Nova transação e Nova compra parcelada (próxima fase).
+- [x] Lógica de negócio real em Extrato, Cartões, Categorias, Nova transação e Nova compra parcelada.
