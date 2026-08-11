@@ -12,10 +12,11 @@ Vite + React + TypeScript, PWA instalável no iPhone via Safari ("Adicionar à T
 
 ```bash
 cp .env.example .env   # ajuste VITE_API_URL se necessário — ver Observações abaixo
+cd ..                  # o docker-compose.yml fica na raiz do repo, não em web/
 docker compose up --build
 ```
 
-Isso sobe o dev server do Vite dentro de um container, com hot reload via bind mount. Exposto em `localhost:5173`.
+Isso sobe o dev server do Vite (junto com o backend — o `docker-compose.yml` é único para os dois projetos, ver [`../CLAUDE.md`](../CLAUDE.md#docker-root-docker-composeyml)) dentro de um container, com hot reload via bind mount. Exposto em `localhost:5173`.
 
 Alternativa sem Docker: `pnpm install && pnpm dev`, mesmo efeito.
 
@@ -31,7 +32,7 @@ pnpm preview               # servir o build de produção localmente
 pnpm lint                 # eslint
 pnpm format                # prettier --write
 pnpm exec tsc -b            # type-check
-docker compose logs -f web  # acompanhar logs do dev server
+docker compose logs -f web  # acompanhar logs do dev server (rodar a partir da raiz do repo)
 ```
 
 ## Observações
@@ -39,4 +40,4 @@ docker compose logs -f web  # acompanhar logs do dev server
 - `VITE_API_URL` (em `.env`) precisa ser o IP da rede local do Mac, não `localhost`, ao testar num iPhone físico — `localhost` no dispositivo resolve pro próprio celular, não pro Mac.
 - Autenticação: senha → token (`x-api-token`) + desbloqueio por Face ID/Touch ID via WebAuthn. WebAuthn só funciona em contexto seguro — `localhost` está liberado por exceção do browser, mas em produção precisa do domínio real servido via HTTPS. Ver a seção Auth de [`../docs/api.md`](../docs/api.md) para o contrato dos endpoints e [`../docs/web-architecture.md`](../docs/web-architecture.md) para o fluxo completo.
 - Notificações push **não estão implementadas** — documentadas como trabalho futuro em [`../docs/web-architecture.md`](../docs/web-architecture.md).
-- `web/docker-compose.yml` é separado do `backend/docker-compose.yml` — cada projeto sobe com seu próprio `docker compose up --build` (mesma lógica de "unidade auto-contida" documentada em [`../docs/architecture.md`](../docs/architecture.md)).
+- O `docker-compose.yml` fica na raiz do repo (não em `web/` nem `backend/`) e sobe os dois projetos juntos — ver [`../CLAUDE.md`](../CLAUDE.md#docker-root-docker-composeyml).
