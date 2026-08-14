@@ -1,5 +1,8 @@
 import { useLocation } from 'react-router-dom';
+import { IconWifiOff } from '@tabler/icons-react';
 import { ThemeQuickToggle } from '@/components/theme-quick-toggle';
+import { Badge } from '@/components/ui/badge';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 
 const titles: Record<string, string> = {
   '/': 'Meu Dinheirinho',
@@ -11,6 +14,7 @@ const titles: Record<string, string> = {
 export function AppHeader() {
   const { pathname } = useLocation();
   const title = titles[pathname] ?? 'Meu Dinheirinho';
+  const isOnline = useOnlineStatus();
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/80 px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 backdrop-blur-md">
@@ -19,6 +23,12 @@ export function AppHeader() {
           MD
         </div>
         <h1 className="text-xl font-bold tracking-tight text-foreground">{title}</h1>
+        {!isOnline && (
+          <Badge variant="destructive">
+            <IconWifiOff />
+            Offline
+          </Badge>
+        )}
       </div>
 
       <ThemeQuickToggle />
