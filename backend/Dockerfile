@@ -36,4 +36,6 @@ RUN pnpm install --prod --frozen-lockfile
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/src/generated ./src/generated
 EXPOSE 3000
-CMD ["node", "dist/server.js"]
+# Applies any pending migrations before every start — idempotent (no-op if none pending),
+# so this is safe on every container start/restart, not just first deploy.
+CMD ["sh", "-c", "pnpm prisma:deploy && node dist/server.js"]

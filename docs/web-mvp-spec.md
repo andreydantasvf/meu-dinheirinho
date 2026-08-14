@@ -32,7 +32,7 @@ Não há multiusuário, cadastro de conta ou recuperação de senha — é delib
 ## Fora do escopo desta fase (roadmap)
 
 - **Notificações push** (Web Push via Service Worker): avisos de fatura fechando, lembrete de parcela vencendo. Documentado como próximo passo em [`web-architecture.md`](./web-architecture.md) — exige infraestrutura nova no backend (chaves VAPID, tabela de subscriptions, algum job/gatilho agendado) que não existe ainda.
-- Uso offline de dados financeiros (o service worker cacheia só os assets estáticos do app, nunca respostas da API — ver [`web-architecture.md`](./web-architecture.md)).
+- Uso offline para **criar/editar** dados: só leitura é suportada (últimos dados sincronizados continuam visíveis sem rede); mutações continuam exigindo conexão — ver [`web-architecture.md`](./web-architecture.md#uso-offline-leitura).
 - Multiusuário (mantém-se fora de escopo, conforme `mvp-spec.md`).
 
 ## Critério de "pronto" para esta fase
@@ -42,3 +42,4 @@ Não há multiusuário, cadastro de conta ou recuperação de senha — é delib
 - [x] Registro e reautenticação via Face ID/Touch ID (WebAuthn) funcionando.
 - [x] Navegação por abas + duas rotas modais espelhando as 6 telas do MVP.
 - [x] Lógica de negócio real em Extrato, Cartões, Categorias, Nova transação e Nova compra parcelada.
+- [x] Uso offline (leitura): últimos dados sincronizados continuam visíveis sem rede, com indicador de status de conexão.

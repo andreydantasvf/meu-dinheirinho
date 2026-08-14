@@ -14,7 +14,7 @@ Vite + React + TypeScript. `pnpm create vite web -- --template react-ts` como po
 
 Estratégia `generateSW` (Workbox gerado automaticamente) em vez de `injectManifest` — não há nenhum handler customizado de service worker (push, sync em background) nesta fase, então o SW gerado automaticamente é suficiente. Revisar para `injectManifest` quando Web Push for implementado (precisa de um handler `push` customizado).
 
-**Sem `runtimeCaching` para a API** — decisão deliberada, não omissão. O backend vive numa origem diferente (`VITE_API_URL`), então o precache do Workbox só cobre os assets estáticos do próprio app; respostas da API (saldo, transações) nunca são cacheadas pelo service worker e sempre batem na rede. Dado financeiro pessoal não deve arriscar ficar em cache stale.
+**Sem `runtimeCaching` para a API** — decisão deliberada, não omissão. O backend vive numa origem diferente (`VITE_API_URL`), então o precache do Workbox só cobre os assets estáticos do próprio app; respostas da API (saldo, transações) nunca são cacheadas pelo service worker e sempre batem na rede. Dado financeiro pessoal não deve arriscar ficar em cache stale. (Isso não significa que não há cache de leitura nenhum — ver "Uso offline (leitura)" abaixo, que resolve isso numa camada diferente, sem envolver o service worker.)
 
 ### Instalação no iOS — pontos não óbvios
 
@@ -78,6 +78,15 @@ Motivação: o backend passa a estar acessível pela internet pública (não só
 - O `challenge` de cada fluxo fica em memória no processo do backend (`webauthn.service.ts`), não num store externo — aceitável porque é single-user/single-instância; não sobrevive a um restart do processo nem escala para múltiplas instâncias, mas nenhum dos dois é uma restrição real neste projeto.
 - **Requer contexto seguro**: funciona em `localhost` para dev (exceção padrão dos browsers), mas em produção precisa do domínio real servido via HTTPS — o `rpID` configurado (`WEBAUTHN_RP_ID`) precisa bater exatamente com o hostname servido. Isso empurra o requisito de deploy: não dá para testar Face ID contra um IP puro do Hostinger, precisa de domínio + certificado.
 - No cliente, `hasRegisteredPasskey()` (`src/lib/auth.ts`) é uma heurística **local** (uma flag em `localStorage`) para decidir se mostra o botão "Entrar com Face ID" — não uma fonte de verdade. Se o `localStorage` for limpo, o credential ainda existe no backend, mas o botão some até o usuário logar de novo por senha e re-registrar. Limitação aceita para um MVP single-user.
+
+## Uso offline (leitura)
+
+Motivação: sem cache nenhum de dado de API, abrir o app sem rede mostra telas vazias — ruim para um app de bolso, aberto em qualquer lugar. Decisão de escopo: só leitura — os últimos dados sincronizados continuam visíveis sem rede, mas criar/editar segue exigindo conexão. Não há fila de escrita/sincronização em background; isso evita todo o problema de resolver conflito em dado financeiro editado offline.
+
+- Implementado com o suporte oficial de persistência do TanStack Query (`@tanstack/react-query-persist-client` + `@tanstack/query-sync-storage-persister`), não com `runtimeCaching` do Workbox — mantém a decisão da seção PWA acima (o service worker nunca cacheia respostas da API) e persiste, em vez disso, o cache do `QueryClient` em si, no `localStorage`. É transparente para os hooks por entidade existentes (`src/hooks/use-*.ts`) — nenhum precisou mudar.
+- `src/lib/query-client.ts` exporta `persister` e `CACHE_BUSTER` (string versionada manualmente) além do `queryClient` de sempre; `src/main.tsx` troca `QueryClientProvider` por `PersistQueryClientProvider`, com `maxAge` de 24h e `buster: CACHE_BUSTER`. O buster precisa ser incrementado sempre que o formato de algum dado cacheado mudar, para descartar um cache antigo incompatível em vez de restaurá-lo e quebrar a UI — mesma categoria de cuidado dos gotchas de formulário já documentados acima.
+- `src/hooks/use-online-status.ts` expõe `navigator.onLine` de forma reativa (eventos `online`/`offline`); `AppHeader` mostra um badge "Offline" quando a rede cai, para deixar claro que os dados na tela podem estar desatualizados.
+- O cache persistido é limpo (`persister.removeClient()`) junto com o token no handler de 401 de `lib/api.ts` — hoje o único ponto de fim de sessão do app (não existe botão de logout na UI); evita vazar dado financeiro de uma sessão anterior num dispositivo compartilhado.
 
 ## Docker
 
