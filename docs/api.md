@@ -31,7 +31,7 @@ Single-user, sem tabela de usuário. Duas formas de obter um token: senha ou Web
 | POST | `/auth/login` | `{ password }` |
 
 - Pública (não exige `x-api-token`). Rate-limited: 5 tentativas / 15 min / IP.
-- Sucesso (200): `{ "token": "<string opaca>" }` — token válido por 90 dias.
+- Sucesso (200): `{ "token": "<string opaca>", "name": "<string>" }` — token válido por 90 dias; `name` vem de `AUTH_USER_NAME` (env var opcional, default `""`, usada só para a saudação "Olá, {name}" na Home — string vazia quando não configurada).
 - Falha (401): `{ "error": "Senha inválida" }`.
 
 ### `POST /auth/webauthn/register/options` e `/register/verify`
@@ -56,7 +56,7 @@ Públicas (sem `x-api-token`) — é assim que o app reautentica sem digitar a s
 | POST | `/auth/webauthn/login/verify` | `AuthenticationResponseJSON` (retorno de `startAuthentication()`) |
 
 - `login/options` → `404 { "error": "Nenhum dispositivo registrado" }` se nenhum autenticador foi registrado ainda; senão retorna `PublicKeyCredentialRequestOptionsJSON`.
-- `login/verify` → sucesso (200): `{ "token": "..." }`, mesmo formato/duração do token de senha. Falha: `401`.
+- `login/verify` → sucesso (200): `{ "token": "...", "name": "..." }`, mesmo formato/duração/origem do `name` que o login por senha. Falha: `401`.
 - Rate-limited igual ao `/auth/login`.
 
 ⚠️ O desafio (`challenge`) de cada fluxo de registro/login fica em memória no processo do backend (single-user, single instância) — não há sessão nem store externo. Um desafio é consumido (ou substituído) a cada chamada de `*/options`, então dois registros/logins concorrentes não são suportados — irrelevante para um app single-user.
