@@ -7,6 +7,8 @@ import {
   calcularLimiteDisponivel,
   calcularSaldoMes,
   construirFiltroExtrato,
+  currentMonthUTC,
+  mesParaIntervalo,
   somarValores,
 } from './report-calculations';
 
@@ -49,6 +51,28 @@ describe('agruparFaturaAtualPorCartao', () => {
     ]);
 
     expect(grupos).toEqual([{ accountId: 'acc1', nome: 'Nubank', total: new Prisma.Decimal(150) }]);
+  });
+});
+
+describe('mesParaIntervalo', () => {
+  it('builds UTC bounds for a mid-year month', () => {
+    const { inicio, fim } = mesParaIntervalo('2026-03');
+
+    expect(inicio.toISOString()).toBe('2026-03-01T00:00:00.000Z');
+    expect(fim.toISOString()).toBe('2026-04-01T00:00:00.000Z');
+  });
+
+  it('rolls over correctly from december to january', () => {
+    const { inicio, fim } = mesParaIntervalo('2026-12');
+
+    expect(inicio.toISOString()).toBe('2026-12-01T00:00:00.000Z');
+    expect(fim.toISOString()).toBe('2027-01-01T00:00:00.000Z');
+  });
+});
+
+describe('currentMonthUTC', () => {
+  it('returns a YYYY-MM string', () => {
+    expect(currentMonthUTC()).toMatch(/^\d{4}-(0[1-9]|1[0-2])$/);
   });
 });
 

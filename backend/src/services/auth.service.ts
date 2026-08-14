@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'crypto';
 import { env } from '../config/env';
-import { issueToken } from '../lib/token';
+import { currentUserName, issueToken } from '../lib/token';
 import { AppError } from '../types/errors';
 
 export const authService = {
@@ -10,6 +10,6 @@ export const authService = {
     const valid = expected.length === actual.length && timingSafeEqual(expected, actual);
     if (!valid) throw new AppError('Senha inválida', 401);
 
-    return { token: issueToken() };
+    return { token: issueToken(), name: currentUserName() };
   },
 };

@@ -6,7 +6,7 @@ import { reportsService } from './reports.service';
 
 vi.mock('../repositories/reports.repository', () => ({
   reportsRepository: {
-    findTransactionsDoMesAtual: vi.fn(),
+    findTransactionsNoIntervalo: vi.fn(),
     findTransactionsPorFiltro: vi.fn(),
     findTransactionsDoCartaoApartirDe: vi.fn(),
   },
@@ -24,7 +24,7 @@ describe('reportsService', () => {
   });
 
   it('dashboard() aggregates saldo, gasto por categoria and fatura por cartão', async () => {
-    vi.mocked(reportsRepository.findTransactionsDoMesAtual).mockResolvedValue([
+    vi.mocked(reportsRepository.findTransactionsNoIntervalo).mockResolvedValue([
       {
         tipo: 'RECEITA',
         valor: new Prisma.Decimal(1000),
@@ -52,6 +52,17 @@ describe('reportsService', () => {
     expect(result.faturaAtualPorCartao).toEqual([
       { accountId: 'acc-cartao', nome: 'Cartão Nubank', total: new Prisma.Decimal(200) },
     ]);
+  });
+
+  it('dashboard(mes) aggregates the given month instead of the current one', async () => {
+    vi.mocked(reportsRepository.findTransactionsNoIntervalo).mockResolvedValue([]);
+
+    await reportsService.dashboard('2026-03');
+
+    expect(reportsRepository.findTransactionsNoIntervalo).toHaveBeenCalledWith(
+      new Date('2026-03-01T00:00:00.000Z'),
+      new Date('2026-04-01T00:00:00.000Z'),
+    );
   });
 
   it('extrato() builds the where clause and delegates to the repository', async () => {

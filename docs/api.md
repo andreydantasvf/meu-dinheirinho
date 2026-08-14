@@ -184,9 +184,9 @@ Response de `POST /purchases` (a Purchase criada, não as transações — use `
 
 Camada somente-leitura de agregação sobre `Transaction`/`Account` — sem model Prisma próprio.
 
-### `GET /dashboard`
+### `GET /dashboard?mes=YYYY-MM`
 
-Sem parâmetros. Agrega **todas as contas**, mês corrente (calendário, não ciclo de fatura).
+Agrega **todas as contas** para o mês informado (calendário, não ciclo de fatura). `mes` é **opcional** — mesmo formato/validação do `/extrato` (`YYYY-MM`, mês `01`-`12`, `400` se inválido); se omitido, usa o mês corrente.
 
 ```json
 {

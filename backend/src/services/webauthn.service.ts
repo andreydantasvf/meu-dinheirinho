@@ -6,7 +6,7 @@ import {
 } from '@simplewebauthn/server';
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
 import { env } from '../config/env';
-import { issueToken } from '../lib/token';
+import { currentUserName, issueToken } from '../lib/token';
 import { webauthnRepository } from '../repositories/webauthn.repository';
 import { AppError } from '../types/errors';
 
@@ -100,6 +100,6 @@ export const webauthnService = {
       BigInt(verification.authenticationInfo.newCounter)
     );
 
-    return { token: issueToken() };
+    return { token: issueToken(), name: currentUserName() };
   },
 };

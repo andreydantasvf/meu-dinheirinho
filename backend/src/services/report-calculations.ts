@@ -50,12 +50,22 @@ export function agruparFaturaAtualPorCartao(transactions: TransactionComConta[])
   return [...totals.values()];
 }
 
+export function mesParaIntervalo(mes: string): { inicio: Date; fim: Date } {
+  const [ano, mesNumero] = mes.split('-').map(Number);
+  const inicio = new Date(Date.UTC(ano, mesNumero - 1, 1));
+  const fim = new Date(Date.UTC(ano, mesNumero, 1));
+  return { inicio, fim };
+}
+
+export function currentMonthUTC(): string {
+  const hoje = new Date();
+  return `${hoje.getUTCFullYear()}-${String(hoje.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
 export type ExtratoFiltro = { mes: string; categoriaId?: string; accountId?: string };
 
 export function construirFiltroExtrato(filtro: ExtratoFiltro): Prisma.TransactionWhereInput {
-  const [ano, mes] = filtro.mes.split('-').map(Number);
-  const inicio = new Date(Date.UTC(ano, mes - 1, 1));
-  const fim = new Date(Date.UTC(ano, mes, 1));
+  const { inicio, fim } = mesParaIntervalo(filtro.mes);
 
   return {
     data: { gte: inicio, lt: fim },

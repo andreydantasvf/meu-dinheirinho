@@ -1,12 +1,13 @@
 import type { Request, Response } from 'express';
 import { reportsService } from '../services/reports.service';
-import { extratoQuerySchema } from '../validators/extrato.schema';
+import { dashboardQuerySchema, extratoQuerySchema } from '../validators/reports.schema';
 
 type AccountIdParams = { id: string };
 
 export const reportsController = {
-  async dashboard(_req: Request, res: Response) {
-    const dashboard = await reportsService.dashboard();
+  async dashboard(req: Request, res: Response) {
+    const { mes } = dashboardQuerySchema.parse(req.query);
+    const dashboard = await reportsService.dashboard(mes);
     res.json(dashboard);
   },
 

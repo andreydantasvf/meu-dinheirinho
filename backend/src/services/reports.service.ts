@@ -9,13 +9,16 @@ import {
   calcularLimiteDisponivel,
   calcularSaldoMes,
   construirFiltroExtrato,
+  currentMonthUTC,
+  mesParaIntervalo,
   somarValores,
   type ExtratoFiltro,
 } from './report-calculations';
 
 export const reportsService = {
-  async dashboard() {
-    const transactions = await reportsRepository.findTransactionsDoMesAtual();
+  async dashboard(mes?: string) {
+    const { inicio, fim } = mesParaIntervalo(mes ?? currentMonthUTC());
+    const transactions = await reportsRepository.findTransactionsNoIntervalo(inicio, fim);
     const despesas = transactions.filter((t) => t.tipo === 'DESPESA');
     const doCartao = transactions.filter((t) => t.account.tipo === 'CARTAO_CREDITO');
 

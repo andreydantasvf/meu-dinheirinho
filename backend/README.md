@@ -11,13 +11,13 @@ Express + TypeScript + Prisma + SQLite, com estrutura em camadas: `routes` → `
 
 ```bash
 cp .env.example .env   # já feito no setup inicial
+cd ..                  # o docker-compose.yml fica na raiz do repo, não em backend/
 docker compose up --build
 ```
 
-Isso sobe um único container:
-- `api`: Express rodando com `tsx watch` (hot reload). Código-fonte é bind-mounted, então qualquer alteração em `src/` reinicia o servidor automaticamente. Exposto em `localhost:3000`. O banco SQLite (`prisma/dev.db`) fica dentro desse mesmo bind mount, então persiste no host normalmente — não há container de banco separado nem volume nomeado.
+Isso sobe o backend junto com o `web/` — o `docker-compose.yml` é único para os dois projetos, ver [`../web/README.md`](../web/README.md) e [`../CLAUDE.md`](../CLAUDE.md#docker-root-docker-composeyml). O serviço `api`: Express rodando com `tsx watch` (hot reload). Código-fonte é bind-mounted, então qualquer alteração em `src/` reinicia o servidor automaticamente. Exposto em `localhost:3000`. O banco SQLite (`prisma/dev.db`) fica dentro desse mesmo bind mount, então persiste no host normalmente — não há container de banco separado nem volume nomeado.
 
-Primeira vez rodando (ou após alterar `prisma/schema.prisma`):
+Primeira vez rodando (ou após alterar `prisma/schema.prisma`), a partir da raiz do repo:
 
 ```bash
 docker compose exec api pnpm prisma migrate dev --name <nome_da_migration>
@@ -28,6 +28,8 @@ docker compose exec api pnpm prisma migrate dev --name <nome_da_migration>
 Ver [`../docs/api.md`](../docs/api.md) para o contrato completo. `GET /health` é pública; todo o resto exige o header `x-api-token` (ver a seção Auth desse documento).
 
 ## Comandos úteis
+
+Rodar a partir da raiz do repo (onde fica o `docker-compose.yml`):
 
 ```bash
 docker compose exec api pnpm prisma studio       # abrir Prisma Studio

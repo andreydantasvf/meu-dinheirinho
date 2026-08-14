@@ -12,6 +12,10 @@ export function issueToken(): string {
   return `${payload}.${sign(payload)}`;
 }
 
+export function currentUserName(): string {
+  return env.AUTH_USER_NAME;
+}
+
 export function verifyToken(token: string): boolean {
   const [payload, signature] = token.split('.');
   if (!payload || !signature) return false;
