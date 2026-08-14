@@ -17,7 +17,7 @@ function invalidateAfterTransactionChange(
   accountId?: string,
 ) {
   queryClient.invalidateQueries({ queryKey: ['extrato'] });
-  queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+  queryClient.invalidateQueries({ queryKey: ['dashboard'] });
   if (accountId) {
     queryClient.invalidateQueries({ queryKey: queryKeys.fatura(accountId) });
   }

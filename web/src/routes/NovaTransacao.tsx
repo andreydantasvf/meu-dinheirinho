@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { MoneyInput } from '@/components/money-input';
 import { DatePickerField } from '@/components/date-picker-field';
+import { CategoryIcon } from '@/components/category-icon';
 import { cn } from '@/lib/utils';
 import { ApiError } from '@/lib/api';
 import { useCategories } from '@/hooks/use-categories';
@@ -34,7 +35,7 @@ import type { Transaction } from '@/types/entities';
 
 const transactionSchema = z.object({
   tipo: z.enum(['DESPESA', 'RECEITA']),
-  valor: z.string().refine((value) => Number(value) > 0, 'Informe um valor'),
+  valor: z.string().refine((value) => Number(value) > 0, 'Informe um valor maior que zero'),
   categoryId: z.string().min(1, 'Selecione uma categoria'),
   accountId: z.string().min(1, 'Selecione uma conta'),
   descricao: z.string().trim().min(1, 'Informe uma descrição'),
@@ -69,14 +70,10 @@ export default function NovaTransacao() {
   const { data: transaction, isLoading: isLoadingTransaction } =
     useTransaction(id);
 
-  // Gate rendering (and therefore the useForm() call below) until the transaction being
-  // edited has actually loaded, so the form always mounts with correct defaultValues on its
-  // very first render — no reset()/values-sync race against the categoryId/accountId
-  // Select controllers, which only register once they mount.
   if (isEditing && isLoadingTransaction) {
     return (
       <ModalRoute title="Transação">
-        <p className="text-sm text-muted-foreground">Carregando...</p>
+        <p className="py-8 text-center text-sm font-medium text-muted-foreground">Carregando...</p>
       </ModalRoute>
     );
   }
@@ -108,6 +105,7 @@ function TransactionForm({
     handleSubmit,
     control,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -115,15 +113,16 @@ function TransactionForm({
   });
 
   const tipo = watch('tipo');
+  const selectedCategoryId = watch('categoryId');
 
   async function onSubmit(values: TransactionFormValues) {
     try {
       if (isEditing && id) {
         await updateTransaction.mutateAsync({ id, ...values });
-        toast.success('Transação atualizada');
+        toast.success('Transação atualizada com sucesso');
       } else {
         await createTransaction.mutateAsync(values);
-        toast.success('Transação criada');
+        toast.success('Transação criada com sucesso');
       }
       navigate(-1);
     } catch (error) {
@@ -139,46 +138,77 @@ function TransactionForm({
   return (
     <ModalRoute title={isEditing ? 'Editar transação' : 'Nova transação'}>
       {isLocked && (
-        <p className="mb-4 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-          Esta transação faz parte de uma compra parcelada e não pode ser
-          editada diretamente.
-        </p>
+        <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-300">
+          Esta transação faz parte de uma compra parcelada e não pode ser editada diretamente.
+        </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
         <fieldset disabled={isLocked} className="contents">
-          <FieldGroup>
-            <Field>
-              <FieldLabel>Tipo</FieldLabel>
-              <TipoToggle control={control} />
-            </Field>
+          {/* Segmented Type Toggle */}
+          <TipoToggle control={control} />
 
-            <Field>
-              <FieldLabel htmlFor="valor">Valor</FieldLabel>
-              <MoneyField control={control} />
-              <FieldError errors={[errors.valor]} />
-            </Field>
+          {/* Hero Money Input */}
+          <div className="flex flex-col items-center gap-1.5 py-4">
+            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+              Valor
+            </span>
+            <MoneyField control={control} />
+            <FieldError errors={[errors.valor]} />
+          </div>
 
-            <Field>
-              <FieldLabel htmlFor="categoryId">Categoria</FieldLabel>
-              <SelectField
-                control={control}
-                name="categoryId"
-                placeholder="Selecione uma categoria"
-                options={filteredCategories.map((category) => ({
-                  value: category.id,
-                  label: category.nome,
-                }))}
-              />
+          <FieldGroup className="flex flex-col gap-4">
+            {/* Category Quick Pills */}
+            <Field className="flex flex-col gap-2">
+              <FieldLabel className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                Categoria
+              </FieldLabel>
+
+              <div className="flex flex-wrap gap-2">
+                {filteredCategories.map((cat) => {
+                  const isSelected = selectedCategoryId === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setValue('categoryId', cat.id, { shouldValidate: true })}
+                      className={cn(
+                        'flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold transition-all',
+                        isSelected
+                          ? 'bg-primary/15 border border-primary text-primary shadow-[0_0_12px_rgba(0,200,255,0.2)]'
+                          : 'bg-foreground/5 border border-border text-muted-foreground hover:bg-foreground/10',
+                      )}
+                    >
+                      <CategoryIcon name={cat.nome} icon={cat.icone} color={cat.cor} size={14} className="size-5 rounded-lg" />
+                      <span>{cat.nome}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {filteredCategories.length === 0 && (
+                <SelectField
+                  control={control}
+                  name="categoryId"
+                  placeholder="Selecione uma categoria"
+                  options={filteredCategories.map((c) => ({
+                    value: c.id,
+                    label: c.nome,
+                  }))}
+                />
+              )}
               <FieldError errors={[errors.categoryId]} />
             </Field>
 
-            <Field>
-              <FieldLabel htmlFor="accountId">Conta</FieldLabel>
+            {/* Account Selector */}
+            <Field className="flex flex-col gap-2">
+              <FieldLabel className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                Conta / Cartão
+              </FieldLabel>
               <SelectField
                 control={control}
                 name="accountId"
-                placeholder="Selecione uma conta"
+                placeholder="Selecione a conta de origem"
                 options={(accounts ?? []).map((account) => ({
                   value: account.id,
                   label: account.nome,
@@ -187,25 +217,36 @@ function TransactionForm({
               <FieldError errors={[errors.accountId]} />
             </Field>
 
-            <Field>
-              <FieldLabel htmlFor="descricao">Descrição</FieldLabel>
+            {/* Description Input */}
+            <Field className="flex flex-col gap-2">
+              <FieldLabel htmlFor="descricao" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                Descrição
+              </FieldLabel>
               <Input
                 id="descricao"
-                placeholder="Supermercado"
+                placeholder="Ex: Mercado Bom Preço"
+                className="h-12 rounded-xl border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground"
                 {...register('descricao')}
               />
               <FieldError errors={[errors.descricao]} />
             </Field>
 
-            <Field>
-              <FieldLabel htmlFor="data">Data</FieldLabel>
+            {/* Date Picker */}
+            <Field className="flex flex-col gap-2">
+              <FieldLabel htmlFor="data" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                Data
+              </FieldLabel>
               <DateField control={control} />
               <FieldError errors={[errors.data]} />
             </Field>
           </FieldGroup>
 
-          <Button type="submit" disabled={isSubmitting} className="mt-6 w-full">
-            Salvar
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="mt-4 h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
+          >
+            {isSubmitting ? 'Salvando...' : 'Salvar transação'}
           </Button>
         </fieldset>
       </form>
@@ -219,29 +260,33 @@ function TipoToggle({
   control: ReturnType<typeof useForm<TransactionFormValues>>['control'];
 }) {
   const { field } = useController({ control, name: 'tipo' });
-  const options = [
-    { value: 'DESPESA', label: 'Despesa' },
-    { value: 'RECEITA', label: 'Receita' },
-  ] as const;
 
   return (
-    <div className="flex gap-1 rounded-lg border border-border bg-muted p-1">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => field.onChange(option.value)}
-          aria-pressed={field.value === option.value}
-          className={cn(
-            'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-            field.value === option.value
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
-        >
-          {option.label}
-        </button>
-      ))}
+    <div className="flex rounded-2xl bg-foreground/5 p-1 border border-border">
+      <button
+        type="button"
+        onClick={() => field.onChange('DESPESA')}
+        className={cn(
+          'flex-1 rounded-xl py-2.5 text-xs font-bold transition-all text-center',
+          field.value === 'DESPESA'
+            ? 'bg-primary text-primary-foreground shadow-[0_0_16px_rgba(0,200,255,0.3)]'
+            : 'text-muted-foreground hover:text-foreground',
+        )}
+      >
+        Saída (Despesa)
+      </button>
+      <button
+        type="button"
+        onClick={() => field.onChange('RECEITA')}
+        className={cn(
+          'flex-1 rounded-xl py-2.5 text-xs font-bold transition-all text-center',
+          field.value === 'RECEITA'
+            ? 'bg-success text-success-foreground shadow-[0_0_16px_rgba(34,211,160,0.3)]'
+            : 'text-muted-foreground hover:text-foreground',
+        )}
+      >
+        Entrada (Receita)
+      </button>
     </div>
   );
 }
@@ -253,7 +298,15 @@ function MoneyField({
 }) {
   const { field } = useController({ control, name: 'valor' });
   return (
-    <MoneyInput id="valor" value={field.value} onChange={field.onChange} />
+    <div className="flex items-baseline justify-center gap-1">
+      <span className="text-2xl font-bold text-muted-foreground">R$</span>
+      <MoneyInput
+        id="valor"
+        value={field.value}
+        onChange={field.onChange}
+        className="h-auto border-none bg-transparent p-0 text-primary text-4xl font-extrabold tracking-tight tabular-nums focus-visible:ring-0 w-auto text-center"
+      />
+    </div>
   );
 }
 
@@ -285,7 +338,7 @@ function SelectField({
   )?.label;
   return (
     <Select value={field.value} onValueChange={field.onChange}>
-      <SelectTrigger id={name} className="w-full">
+      <SelectTrigger id={name} className="h-12 w-full rounded-xl border-border bg-card text-sm text-foreground">
         <SelectValue placeholder={placeholder}>{selectedLabel}</SelectValue>
       </SelectTrigger>
       <SelectContent>

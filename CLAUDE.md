@@ -10,19 +10,29 @@ Monorepo with two **fully independent** projects (no shared workspaces, separate
 - `web/` — Vite + React PWA, installable on iPhone via Safari "Add to Home Screen" (replaces an earlier React Native/Expo mobile app that was abandoned before publishing — see `docs/web-architecture.md` for why).
 - `docs/` — product spec (`docs/mvp-spec.md`), technical architecture/decisions log (`docs/architecture.md`), the backend API reference (`docs/api.md`), and the web app's own spec (`docs/web-mvp-spec.md`) and architecture doc (`docs/web-architecture.md`). Read `docs/architecture.md` before making non-trivial backend changes — it documents several non-obvious setup decisions (Prisma 7 driver-adapter requirement, Docker port/volume quirks, etc.) that aren't visible from the code alone. Read `docs/web-architecture.md` before making non-trivial changes in `web/` — it covers the PWA/iOS install caveats and the auth flow. Read `docs/api.md` before writing any screen that calls the backend — it has every route, request/response shape, and the Decimal-as-string serialization gotcha (money fields arrive as e.g. `"100.5"`, not a fixed-2-decimal string or a JS number).
 
-Both projects use **pnpm**, not npm/yarn.
+Both projects use **pnpm**, not npm/yarn. Despite being independent projects (separate lockfiles, no shared workspace), both run through a single `docker-compose.yml` at the repo root — see "Docker (root `docker-compose.yml`)" below.
+
+## Docker (root `docker-compose.yml`)
+
+```bash
+docker compose up --build                    # dev: api on :3000, web on :5173, hot reload via bind mounts
+docker compose --profile prod up --build      # prod: api-prod on :3000, web-prod (nginx) on :80
+```
+
+One compose file for both dev and prod, at the repo root (not per-project). The `api`/`web` services (no `profiles` key) are the dev default and match the `dev` target of each project's `Dockerfile`; `api-prod`/`web-prod` are gated behind `profiles: ['prod']` so a plain `docker compose up` never starts them, and build the `prod` target instead (compiled backend served by `node`, static web bundle served by `nginx`). `api-prod` uses a named volume (`api-data`) for `prisma/dev.db` since the prod image has no bind mount to persist it across restarts.
 
 ## Backend (`backend/`)
 
 ### Commands
 
 ```bash
-cd backend
-docker compose up --build       # start the API in Docker (day-to-day dev loop, hot reload via tsx watch)
+# from the repo root (day-to-day dev loop, hot reload via tsx watch — see "Docker" section above)
+docker compose up --build
 docker compose exec api pnpm prisma migrate dev --name <name>   # run after editing prisma/schema.prisma
 docker compose exec api pnpm prisma studio
 docker compose logs -f api
 
+cd backend
 pnpm lint                       # eslint
 pnpm format                     # prettier --write
 pnpm exec tsc --noEmit          # type-check without building
@@ -50,8 +60,10 @@ Money fields are Prisma `Decimal`, not `number` — format/parse explicitly, don
 ### Commands
 
 ```bash
+# from the repo root (day-to-day dev loop, hot reload via bind mount — see "Docker" section above)
+docker compose up --build
+
 cd web
-docker compose up --build    # start the Vite dev server in Docker (day-to-day dev loop, hot reload via bind mount)
 pnpm dev                     # ...or run the Vite dev server directly on the host, same effect
 pnpm build                   # production build (output in dist/, includes the generated service worker)
 pnpm preview                 # serve the production build locally
@@ -78,4 +90,4 @@ Vite + React + TypeScript, installable as a PWA via Safari's "Add to Home Screen
 
 `VITE_API_URL` (in `.env`) must be the Mac's LAN IP, not `localhost`, when testing on a physical iPhone over the local network — `localhost` on-device resolves to the phone itself. `vite.config.ts` sets `server.host: true` so the dev server binds `0.0.0.0` (not just `localhost`) — required both for that LAN/iPhone case and for reaching the Vite dev server running inside Docker from the host.
 
-`web/docker-compose.yml` is separate from `backend/`'s — each project's compose file is self-contained on purpose (mirrors how Coolify deploys them as independent units, see `docs/architecture.md`). Running both means `docker compose up --build` in each folder; the web dev server is exposed at `localhost:5173`.
+The web dev server runs as the `web` service in the root `docker-compose.yml` (see "Docker" section above), exposed at `localhost:5173`.

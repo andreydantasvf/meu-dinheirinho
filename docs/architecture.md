@@ -9,7 +9,7 @@ Monorepo com duas pastas **totalmente independentes** (sem workspaces pnpm/npm c
 - `backend/` — API Express + TypeScript + Prisma + SQLite, dockerizada.
 - `web/` — App Vite + React PWA.
 
-Essa independência foi uma escolha deliberada: não há código compartilhado hoje (tipos/DTOs), então workspaces adicionariam complexidade sem benefício.
+Essa independência foi uma escolha deliberada: não há código compartilhado hoje (tipos/DTOs), então workspaces adicionariam complexidade sem benefício. O único ponto compartilhado é o Docker: um `docker-compose.yml` único na raiz do repo sobe os dois serviços juntos (ver seção Docker abaixo) — cada pasta continua sem saber da outra em termos de código/dependências.
 
 ## Backend
 
@@ -47,11 +47,13 @@ A fatia de `reports.*` (`repository`/`service`/`controller`/`routes` sob `dashbo
 
 ### Docker
 
-- `docker-compose.yml` mora em `backend/` (não na raiz do repo) — reforça que o backend é uma unidade auto-contida, do jeito que o Coolify vai consumir no deploy.
-- Um único `Dockerfile` multi-stage (`dev` / `build` / `prod`). O dia a dia usa o estágio `dev` (`tsx watch`, hot reload via bind mount de `backend/:/app` + volume anônimo em `/app/node_modules` para não deixar o host sobrescrever o `node_modules` buildado pro Linux do container).
-- **Só um serviço no compose (`api`)** — desde a troca pra SQLite não existe mais container de banco separado. O arquivo `prisma/dev.db` fica dentro do bind mount `.:/app`, então persiste no host normalmente entre restarts do container, sem precisar de um volume nomeado dedicado (ao contrário do antigo `pgdata`).
-- `ENV DATABASE_URL=...` no `Dockerfile` (estágio `base`) existe só como placeholder para o `prisma generate` (rodado via `postinstall`) conseguir resolver a variável durante o build da imagem — em runtime o `env_file: .env` do `docker-compose.yml` sobrescreve com o valor real.
-- ⚠️ **Deploy em produção** (Coolify) ainda não foi executado — quando for, o estágio `prod` do `Dockerfile` não tem bind mount, então o arquivo SQLite precisa de um volume nomeado explícito para não ser perdido a cada deploy/restart do container. Não modelado neste repo ainda.
+- Um único `docker-compose.yml` na raiz do repo (não mais um por pasta) sobe `backend/` e `web/` juntos — decisão revertida em agosto/2026: originalmente cada projeto tinha seu próprio compose para espelhar unidades independentes no Coolify, mas isso só duplicava esforço no dia a dia local sem ganho real (o Coolify pode consumir o mesmo compose apontando pra cada serviço). Ver `docs/web-architecture.md#docker` para o lado do `web/`.
+- `docker compose up --build` (sem flags) sobe só os serviços de dev — `api` (`localhost:3000`) e `web` (`localhost:5173`) — que usam o estágio `dev` de cada `Dockerfile` (hot reload via bind mount `./backend:/app` / `./web:/app` + volume anônimo em `/app/node_modules` para não deixar o host sobrescrever o `node_modules` buildado pro Linux do container).
+- `docker compose --profile prod up --build` sobe `api-prod`/`web-prod` em vez disso — usam o estágio `prod` de cada `Dockerfile` (backend compilado rodando com `node`, bundle estático do web servido por `nginx` na porta 80). Ficam atrás de `profiles: ['prod']` justamente para nunca subir num `docker compose up` comum.
+- Um único `Dockerfile` multi-stage por projeto (`dev` / `build` / `prod`). Cada `Dockerfile` continua vivendo na própria pasta (`backend/Dockerfile`, `web/Dockerfile`) — só o compose subiu pra raiz, com `context: ./backend` / `context: ./web` apontando de volta pra cada um.
+- **Persistência do SQLite em produção**: `api-prod` usa um volume nomeado (`api-data`, montado em `/app/prisma`) porque o estágio `prod` não tem bind mount — sem isso, `prisma/dev.db` seria perdido a cada rebuild/restart do container. Em dev, o arquivo já persiste normalmente dentro do bind mount `./backend:/app`, sem precisar de volume dedicado.
+- `ENV DATABASE_URL=...` no `Dockerfile` (estágio `base`) existe só como placeholder para o `prisma generate` (rodado via `postinstall`) conseguir resolver a variável durante o build da imagem — em runtime o `env_file: ./backend/.env` do `docker-compose.yml` sobrescreve com o valor real.
+- ⚠️ **Deploy em produção** (Coolify) ainda não foi executado — o compose de raiz com o profile `prod` foi modelado com isso em mente, mas nunca testado contra um Coolify de verdade.
 
 ## Web
 

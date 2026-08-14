@@ -1,4 +1,4 @@
-import { clearToken, getToken } from './auth';
+import { clearToken, clearUserName, getToken } from './auth';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -36,6 +36,7 @@ export async function apiFetch<T>(
 
   if (res.status === 401 && !skipAuth) {
     clearToken();
+    clearUserName();
     window.location.href = '/login';
     throw new ApiError('Não autorizado', 401);
   }

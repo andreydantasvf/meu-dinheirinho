@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { IconPencil, IconPlus, IconTrash, IconTag } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,18 +15,18 @@ import {
 } from '@/components/ui/alert-dialog';
 import { CategoryFormDialog } from '@/components/category-form-dialog';
 import { useCategories, useDeleteCategory } from '@/hooks/use-categories';
+import { CategoryIcon } from '@/components/category-icon';
 import { ApiError } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import type { Category } from '@/types/entities';
 
-const groupLabels: Record<Category['tipo'], string> = {
-  DESPESA: 'Despesas',
-  RECEITA: 'Receitas',
-};
+type TabType = 'DESPESA' | 'RECEITA';
 
 export default function Categorias() {
   const { data: categories, isLoading, isError } = useCategories();
   const deleteCategory = useDeleteCategory();
 
+  const [activeTab, setActiveTab] = useState<TabType>('DESPESA');
   const [editing, setEditing] = useState<Category | undefined>(undefined);
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Category | undefined>(undefined);
@@ -45,7 +45,7 @@ export default function Categorias() {
     if (!deleting) return;
     try {
       await deleteCategory.mutateAsync(deleting.id);
-      toast.success('Categoria excluída');
+      toast.success('Categoria excluída com sucesso');
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : 'Não foi possível excluir',
@@ -55,88 +55,130 @@ export default function Categorias() {
     }
   }
 
-  const groups = (['DESPESA', 'RECEITA'] as const).map((tipo) => ({
-    tipo,
-    items: categories?.filter((category) => category.tipo === tipo) ?? [],
-  }));
+  const currentCategories =
+    categories?.filter((category) => category.tipo === activeTab) ?? [];
 
   return (
-    <div className="p-4 pb-24">
+    <div className="flex flex-col gap-5 p-4">
+      {/* Top Bar with Add Button */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold tracking-tight text-foreground">Categorias</h2>
+        <Button
+          onClick={openCreate}
+          size="sm"
+          className="gap-1.5 rounded-full bg-primary font-bold text-primary-foreground shadow-[0_0_16px_rgba(0,200,255,0.3)] hover:bg-primary/90"
+        >
+          <IconPlus size={16} stroke={2.5} /> Nova
+        </Button>
+      </div>
+
+      {/* Segmented Type Switcher */}
+      <div className="flex items-center gap-2 rounded-2xl bg-card p-1.5 border border-border">
+        <button
+          type="button"
+          onClick={() => setActiveTab('DESPESA')}
+          className={cn(
+            'flex-1 rounded-xl py-2 text-xs font-bold transition-all text-center',
+            activeTab === 'DESPESA'
+              ? 'bg-primary text-primary-foreground shadow-[0_0_16px_rgba(0,200,255,0.3)]'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          Despesas
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('RECEITA')}
+          className={cn(
+            'flex-1 rounded-xl py-2 text-xs font-bold transition-all text-center',
+            activeTab === 'RECEITA'
+              ? 'bg-success text-success-foreground shadow-[0_0_16px_rgba(34,211,160,0.3)]'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          Receitas
+        </button>
+      </div>
+
       {isLoading && (
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-14 w-full rounded-2xl bg-foreground/5" />
+          <Skeleton className="h-14 w-full rounded-2xl bg-foreground/5" />
+          <Skeleton className="h-14 w-full rounded-2xl bg-foreground/5" />
         </div>
       )}
 
       {isError && (
-        <p className="text-sm text-muted-foreground">
+        <p className="py-4 text-center text-sm font-medium text-destructive">
           Não foi possível carregar as categorias.
         </p>
       )}
 
-      {categories && categories.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          Nenhuma categoria cadastrada ainda.
-        </p>
+      {categories && currentCategories.length === 0 && (
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-8 text-center">
+          <IconTag size={36} className="text-muted-foreground mb-3" />
+          <p className="text-sm font-medium text-muted-foreground mb-4">
+            Nenhuma categoria de {activeTab === 'DESPESA' ? 'despesa' : 'receita'} cadastrada.
+          </p>
+          <Button
+            onClick={openCreate}
+            className="rounded-xl bg-primary font-bold text-primary-foreground"
+          >
+            Criar categoria
+          </Button>
+        </div>
       )}
 
-      {categories &&
-        categories.length > 0 &&
-        groups.map(
-          (group) =>
-            group.items.length > 0 && (
-              <section key={group.tipo} className="mb-6">
-                <h2 className="mb-2 text-sm font-medium text-muted-foreground">
-                  {groupLabels[group.tipo]}
-                </h2>
-                <ul className="flex flex-col gap-2">
-                  {group.items.map((category) => (
-                    <li
-                      key={category.id}
-                      className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5"
-                    >
-                      <span
-                        className="flex size-9 shrink-0 items-center justify-center rounded-full text-base"
-                        style={{ backgroundColor: category.cor ?? undefined }}
-                      >
-                        {category.icone}
-                      </span>
-                      <span className="flex-1 text-sm font-medium">
-                        {category.nome}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label="Editar categoria"
-                        onClick={() => openEdit(category)}
-                      >
-                        <Pencil />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label="Excluir categoria"
-                        onClick={() => setDeleting(category)}
-                      >
-                        <Trash2 />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ),
-        )}
+      {/* Category List */}
+      {currentCategories.length > 0 && (
+        <div className="flex flex-col rounded-3xl border border-border bg-card overflow-hidden">
+          {currentCategories.map((category) => (
+            <div
+              key={category.id}
+              className="flex items-center justify-between border-b border-border p-4 last:border-b-0"
+            >
+              <div className="flex items-center gap-3">
+                <CategoryIcon
+                  name={category.nome}
+                  icon={category.icone}
+                  color={category.cor}
+                  size={20}
+                  className="size-11 rounded-2xl"
+                />
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-foreground">
+                    {category.nome}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {category.tipo === 'DESPESA' ? 'Despesa' : 'Receita'}
+                  </span>
+                </div>
+              </div>
 
-      <Button
-        onClick={openCreate}
-        size="icon-lg"
-        className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] rounded-full shadow-lg"
-        aria-label="Nova categoria"
-      >
-        <Plus />
-      </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Editar categoria"
+                  onClick={() => openEdit(category)}
+                  className="size-8 rounded-xl text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+                >
+                  <IconPencil size={16} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Excluir categoria"
+                  onClick={() => setDeleting(category)}
+                  className="size-8 rounded-xl text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
+                >
+                  <IconTrash size={16} />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <CategoryFormDialog
         category={editing}
@@ -148,16 +190,19 @@ export default function Categorias() {
         open={Boolean(deleting)}
         onOpenChange={(open) => !open && setDeleting(undefined)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir categoria?</AlertDialogTitle>
             <AlertDialogDescription>
               A categoria "{deleting?.nome}" será removida permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-2">
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive font-bold text-white hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

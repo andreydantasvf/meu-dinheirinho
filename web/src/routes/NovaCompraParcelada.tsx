@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useController, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { IconMinus, IconPlus } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { ModalRoute } from '../components/ModalRoute';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,7 @@ const purchaseSchema = z.object({
   descricao: z.string().trim().min(1, 'Informe uma descrição'),
   valorTotal: z
     .string()
-    .refine((value) => Number(value) > 0, 'Informe um valor'),
+    .refine((value) => Number(value) > 0, 'Informe um valor maior que zero'),
   numeroParcelas: z.number().int().min(1, 'Informe ao menos 1 parcela'),
   categoryId: z.string().min(1, 'Selecione uma categoria'),
   accountId: z.string().min(1, 'Selecione uma conta'),
@@ -60,6 +61,7 @@ export default function NovaCompraParcelada() {
     handleSubmit,
     control,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
@@ -76,7 +78,7 @@ export default function NovaCompraParcelada() {
   async function onSubmit(values: PurchaseFormValues) {
     try {
       await createPurchase.mutateAsync(values);
-      toast.success('Compra parcelada criada');
+      toast.success('Compra parcelada criada com sucesso');
       navigate(-1);
     } catch (error) {
       toast.error(
@@ -86,52 +88,102 @@ export default function NovaCompraParcelada() {
   }
 
   return (
-    <ModalRoute title="Nova compra parcelada">
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="descricao">Descrição</FieldLabel>
+    <ModalRoute title="Compra parcelada">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+        {/* Hero Money Input */}
+        <div className="flex flex-col items-center gap-1.5 py-3">
+          <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+            Valor Total
+          </span>
+          <MoneyField control={control} />
+          <FieldError errors={[errors.valorTotal]} />
+        </div>
+
+        {/* Installments Stepper Control */}
+        <div className="flex flex-col gap-2">
+          <label htmlFor="numeroParcelas" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+            Número de parcelas
+          </label>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setValue('numeroParcelas', Math.max(1, numeroParcelas - 1))}
+              className="flex size-12 items-center justify-center rounded-xl bg-card border border-border text-foreground hover:bg-foreground/10 active:scale-95 transition-all"
+            >
+              <IconMinus size={20} stroke={2.5} />
+            </button>
+
+            <div className="flex flex-1 h-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/40 text-xl font-extrabold text-primary">
+              {numeroParcelas}×
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setValue('numeroParcelas', numeroParcelas + 1)}
+              className="flex size-12 items-center justify-center rounded-xl bg-card border border-border text-foreground hover:bg-foreground/10 active:scale-95 transition-all"
+            >
+              <IconPlus size={20} stroke={2.5} />
+            </button>
+          </div>
+          <FieldError errors={[errors.numeroParcelas]} />
+        </div>
+
+        {/* Installments Live Preview Card */}
+        {preview && (
+          <div className="flex flex-col gap-2 rounded-2xl bg-primary/10 border border-primary/30 p-4 text-foreground">
+            <div className="flex items-baseline justify-between">
+              <span className="text-[11px] font-semibold tracking-wider text-primary uppercase">
+                Vai gerar
+              </span>
+              <span className="text-base font-extrabold text-foreground tabular-nums">
+                {preview.numeroParcelas} × {formatMoney(preview.installmentDisplay)}
+              </span>
+            </div>
+            {preview.lastDiffers && (
+              <p className="text-xs text-muted-foreground">
+                * Última parcela com ajuste de centavos: {formatMoney(preview.lastDisplay)}
+              </p>
+            )}
+          </div>
+        )}
+
+        <FieldGroup className="flex flex-col gap-4">
+          {/* Description Input */}
+          <Field className="flex flex-col gap-2">
+            <FieldLabel htmlFor="descricao" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+              Descrição do produto/serviço
+            </FieldLabel>
             <Input
               id="descricao"
-              placeholder="Notebook"
+              placeholder="Ex: Geladeira Frost Free"
+              className="h-12 rounded-xl border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground"
               {...register('descricao')}
             />
             <FieldError errors={[errors.descricao]} />
           </Field>
 
-          <Field>
-            <FieldLabel htmlFor="valorTotal">Valor total</FieldLabel>
-            <MoneyField control={control} />
-            <FieldError errors={[errors.valorTotal]} />
-          </Field>
-
-          <Field>
-            <FieldLabel htmlFor="numeroParcelas">Número de parcelas</FieldLabel>
-            <Input
-              id="numeroParcelas"
-              type="number"
-              min={1}
-              {...register('numeroParcelas', { valueAsNumber: true })}
+          {/* Account Selector */}
+          <Field className="flex flex-col gap-2">
+            <FieldLabel htmlFor="accountId" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+              Cartão de crédito
+            </FieldLabel>
+            <SelectField
+              control={control}
+              name="accountId"
+              placeholder="Selecione o cartão"
+              options={(accounts ?? []).map((account) => ({
+                value: account.id,
+                label: account.nome,
+              }))}
             />
-            <FieldError errors={[errors.numeroParcelas]} />
+            <FieldError errors={[errors.accountId]} />
           </Field>
 
-          {preview && (
-            <p className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-              {preview.numeroParcelas}x de{' '}
-              {formatMoney(preview.installmentDisplay)}
-              {preview.lastDiffers && (
-                <>
-                  {' '}
-                  (última parcela {formatMoney(preview.lastDisplay)}, ajuste de
-                  centavos)
-                </>
-              )}
-            </p>
-          )}
-
-          <Field>
-            <FieldLabel htmlFor="categoryId">Categoria</FieldLabel>
+          {/* Category Selector */}
+          <Field className="flex flex-col gap-2">
+            <FieldLabel htmlFor="categoryId" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+              Categoria
+            </FieldLabel>
             <SelectField
               control={control}
               name="categoryId"
@@ -144,29 +196,24 @@ export default function NovaCompraParcelada() {
             <FieldError errors={[errors.categoryId]} />
           </Field>
 
-          <Field>
-            <FieldLabel htmlFor="accountId">Conta</FieldLabel>
-            <SelectField
-              control={control}
-              name="accountId"
-              placeholder="Selecione uma conta"
-              options={(accounts ?? []).map((account) => ({
-                value: account.id,
-                label: account.nome,
-              }))}
-            />
-            <FieldError errors={[errors.accountId]} />
-          </Field>
-
-          <Field>
-            <FieldLabel htmlFor="dataCompra">Data da compra</FieldLabel>
+          {/* Purchase Date */}
+          <Field className="flex flex-col gap-2">
+            <FieldLabel htmlFor="dataCompra" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+              Data da 1ª parcela
+            </FieldLabel>
             <DateField control={control} />
             <FieldError errors={[errors.dataCompra]} />
           </Field>
         </FieldGroup>
 
-        <Button type="submit" disabled={isSubmitting} className="mt-6 w-full">
-          Salvar
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="mt-4 h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
+        >
+          {isSubmitting
+            ? 'Criando parcelas...'
+            : `Criar ${numeroParcelas} lançamentos`}
         </Button>
       </form>
     </ModalRoute>
@@ -200,7 +247,15 @@ function MoneyField({
 }) {
   const { field } = useController({ control, name: 'valorTotal' });
   return (
-    <MoneyInput id="valorTotal" value={field.value} onChange={field.onChange} />
+    <div className="flex items-baseline justify-center gap-1">
+      <span className="text-2xl font-bold text-muted-foreground">R$</span>
+      <MoneyInput
+        id="valorTotal"
+        value={field.value}
+        onChange={field.onChange}
+        className="h-auto border-none bg-transparent p-0 text-primary text-4xl font-extrabold tracking-tight tabular-nums focus-visible:ring-0 w-auto text-center"
+      />
+    </div>
   );
 }
 
@@ -236,7 +291,7 @@ function SelectField({
   )?.label;
   return (
     <Select value={field.value} onValueChange={field.onChange}>
-      <SelectTrigger id={name} className="w-full">
+      <SelectTrigger id={name} className="h-12 w-full rounded-xl border-border bg-card text-sm text-foreground">
         <SelectValue placeholder={placeholder}>{selectedLabel}</SelectValue>
       </SelectTrigger>
       <SelectContent>

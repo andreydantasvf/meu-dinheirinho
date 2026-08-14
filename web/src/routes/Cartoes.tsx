@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import {
+  IconCreditCard,
+  IconPencil,
+  IconTrash,
+  IconPlus,
+  IconCalendar,
+} from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -49,10 +55,8 @@ export default function Cartoes() {
     if (!deleting) return;
     try {
       await deleteAccount.mutateAsync(deleting.id);
-      toast.success('Conta excluída');
+      toast.success('Conta excluída com sucesso');
     } catch (error) {
-      // The backend doesn't map the FK-violation-on-delete case to a friendly error yet
-      // (docs/api.md) — a 500 here almost always means the account still has entries.
       if (error instanceof ApiError && error.status === 500) {
         toast.error('Não é possível excluir uma conta com lançamentos');
       } else {
@@ -68,32 +72,54 @@ export default function Cartoes() {
   }
 
   return (
-    <div className="p-4 pb-24">
+    <div className="flex flex-col gap-6 p-4">
+      {/* Header & Add Button */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold tracking-tight text-foreground">Cartões e Contas</h2>
+        <Button
+          onClick={openCreate}
+          size="sm"
+          className="gap-1.5 rounded-full bg-primary font-bold text-primary-foreground shadow-[0_0_16px_rgba(0,200,255,0.3)] hover:bg-primary/90"
+        >
+          <IconPlus size={16} stroke={2.5} /> Nova Conta
+        </Button>
+      </div>
+
       {isLoading && (
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-14 w-full" />
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-52 w-full rounded-3xl bg-foreground/5" />
+          <Skeleton className="h-20 w-full rounded-2xl bg-foreground/5" />
         </div>
       )}
 
       {isError && (
-        <p className="text-sm text-muted-foreground">
-          Não foi possível carregar as contas.
+        <p className="py-4 text-center text-sm font-medium text-destructive">
+          Não foi possível carregar as contas e cartões.
         </p>
       )}
 
       {accounts && accounts.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          Nenhuma conta cadastrada ainda.
-        </p>
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-8 text-center">
+          <IconCreditCard size={40} className="text-muted-foreground mb-3" />
+          <p className="text-sm font-medium text-muted-foreground mb-4">
+            Nenhuma conta ou cartão cadastrado ainda.
+          </p>
+          <Button
+            onClick={openCreate}
+            className="rounded-xl bg-primary font-bold text-primary-foreground"
+          >
+            Cadastrar primeiro cartão
+          </Button>
+        </div>
       )}
 
+      {/* Credit Cards Section */}
       {cards.length > 0 && (
-        <section className="mb-6">
-          <h2 className="mb-2 text-sm font-medium text-muted-foreground">
-            Cartões de crédito
-          </h2>
-          <div className="flex flex-col gap-3">
+        <section className="flex flex-col gap-3">
+          <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground px-1">
+            Cartões de Crédito
+          </span>
+          <div className="flex flex-col gap-4">
             {cards.map((account) => (
               <CardSummary
                 key={account.id}
@@ -106,55 +132,57 @@ export default function Cartoes() {
         </section>
       )}
 
+      {/* Other Accounts Section */}
       {others.length > 0 && (
-        <section className="mb-6">
-          <h2 className="mb-2 text-sm font-medium text-muted-foreground">
-            Outras contas
-          </h2>
-          <ul className="flex flex-col gap-2">
+        <section className="flex flex-col gap-3">
+          <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground px-1">
+            Outras Contas & Bancos
+          </span>
+          <div className="flex flex-col rounded-2xl border border-border bg-card overflow-hidden">
             {others.map((account) => (
-              <li
+              <div
                 key={account.id}
-                className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5"
+                className="flex items-center justify-between border-b border-border p-4 last:border-b-0"
               >
-                <span className="flex-1">
-                  <span className="block text-sm font-medium">
-                    {account.nome}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    {accountTypeLabels[account.tipo]}
-                  </span>
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Editar conta"
-                  onClick={() => openEdit(account)}
-                >
-                  <Pencil />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Excluir conta"
-                  onClick={() => setDeleting(account)}
-                >
-                  <Trash2 />
-                </Button>
-              </li>
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-2xl bg-foreground/5 text-primary">
+                    <IconCreditCard size={20} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-foreground">
+                      {account.nome}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {accountTypeLabels[account.tipo]}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Editar conta"
+                    onClick={() => openEdit(account)}
+                    className="size-8 rounded-xl text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+                  >
+                    <IconPencil size={16} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Excluir conta"
+                    onClick={() => setDeleting(account)}
+                    className="size-8 rounded-xl text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
+                  >
+                    <IconTrash size={16} />
+                  </Button>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
       )}
-
-      <Button
-        onClick={openCreate}
-        size="icon-lg"
-        className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] rounded-full shadow-lg"
-        aria-label="Nova conta"
-      >
-        <Plus />
-      </Button>
 
       <AccountFormDialog
         account={editing}
@@ -166,16 +194,19 @@ export default function Cartoes() {
         open={Boolean(deleting)}
         onOpenChange={(open) => !open && setDeleting(undefined)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir conta?</AlertDialogTitle>
             <AlertDialogDescription>
               A conta "{deleting?.nome}" será removida permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-2">
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive font-bold text-white hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -203,62 +234,95 @@ function CardSummary({
       : 0;
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-sm font-semibold">{account.nome}</span>
-        <div className="flex gap-1">
+    <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-secondary to-popover p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+      {/* Top Bar of Card */}
+      <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-lg font-bold text-foreground tracking-tight">{account.nome}</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            {account.diaFechamento ? `Fecha dia ${account.diaFechamento}` : 'Fatura aberta'}{' '}
+            {account.diaVencimento ? `· Vence dia ${account.diaVencimento}` : ''}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-primary uppercase">
+            ABERTA
+          </span>
           <Button
             variant="ghost"
-            size="icon-sm"
-            aria-label="Editar conta"
+            size="icon"
             onClick={onEdit}
+            className="size-7 rounded-lg text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
           >
-            <Pencil />
+            <IconPencil size={14} />
           </Button>
           <Button
             variant="ghost"
-            size="icon-sm"
-            aria-label="Excluir conta"
+            size="icon"
             onClick={onDelete}
+            className="size-7 rounded-lg text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
           >
-            <Trash2 />
+            <IconTrash size={14} />
           </Button>
         </div>
       </div>
 
-      {isLoading && <Skeleton className="h-16 w-full" />}
+      {isLoading && <Skeleton className="my-4 h-16 w-full rounded-2xl bg-foreground/5" />}
 
       {fatura && (
         <>
-          <div className="mb-3 flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Fatura atual</span>
-            <span className="font-medium">
-              {formatMoney(fatura.faturaAtual)}
+          {/* Main invoice figure */}
+          <div className="my-4 flex flex-col gap-1">
+            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+              Fatura Atual
             </span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg font-semibold text-muted-foreground">R$</span>
+              <span className="text-3xl font-extrabold tracking-tight text-foreground tabular-nums">
+                {formatMoney(fatura.faturaAtual).replace('R$', '').trim()}
+              </span>
+            </div>
           </div>
 
-          <div className="mb-1 h-2 w-full rounded-full bg-muted">
-            <div
-              className="h-2 rounded-full bg-primary transition-all"
-              style={{ width: `${usedPct}%` }}
-            />
+          {/* Progress bar of used limit */}
+          <div className="flex flex-col gap-2">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
+              <div
+                className="h-full rounded-full bg-primary shadow-[0_0_16px_rgba(0,200,255,0.5)] transition-all duration-500"
+                style={{ width: `${usedPct}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs font-medium text-muted-foreground">
+              <span>Limite utilizado</span>
+              <span className="font-bold text-foreground tabular-nums">
+                R$ {formatMoney(fatura.limiteDisponivel).replace('R$', '').trim()} disponível
+              </span>
+            </div>
           </div>
-          <p className="mb-3 text-xs text-muted-foreground">
-            {formatMoney(fatura.limiteDisponivel)} disponível de{' '}
-            {formatMoney(account.limite ?? '0')}
-          </p>
 
+          {/* Future Invoices breakdown */}
           {fatura.faturasFuturas.length > 0 && (
-            <div className="flex flex-col gap-1 border-t border-border pt-2">
-              {fatura.faturasFuturas.map((future) => (
-                <div
-                  key={future.mes}
-                  className="flex justify-between text-xs text-muted-foreground"
-                >
-                  <span>{formatMonthLabel(future.mes)}</span>
-                  <span>{formatMoney(future.total)}</span>
-                </div>
-              ))}
+            <div className="mt-4 flex flex-col gap-2 border-t border-border pt-3">
+              <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+                Faturas Futuras
+              </span>
+              <div className="flex flex-col gap-1.5">
+                {fatura.faturasFuturas.map((future) => (
+                  <div
+                    key={future.mes}
+                    className="flex justify-between text-xs font-medium text-muted-foreground"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <IconCalendar size={13} className="text-muted-foreground" />
+                      {formatMonthLabel(future.mes)}
+                    </span>
+                    <span className="font-bold text-foreground tabular-nums">
+                      {formatMoney(future.total)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </>

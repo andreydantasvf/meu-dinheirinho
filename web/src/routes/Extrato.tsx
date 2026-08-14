@@ -1,10 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconTrash,
+  IconFilter,
+  IconLock,
+} from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -25,6 +30,7 @@ import {
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useDeleteTransaction, useExtrato } from '@/hooks/use-transactions';
+import { CategoryIcon } from '@/components/category-icon';
 import {
   formatDateShort,
   currentMonth,
@@ -37,10 +43,12 @@ import { cn } from '@/lib/utils';
 import type { Transaction } from '@/types/entities';
 
 const ALL = 'all';
+type TypeFilter = 'ALL' | 'RECEITA' | 'DESPESA';
 
 export default function Extrato() {
   const navigate = useNavigate();
   const [mes, setMes] = useState(currentMonth());
+  const [tipoFilter, setTipoFilter] = useState<TypeFilter>('ALL');
   const [categoriaId, setCategoriaId] = useState(ALL);
   const [accountId, setAccountId] = useState(ALL);
   const [deleting, setDeleting] = useState<Transaction | undefined>(undefined);
@@ -48,7 +56,7 @@ export default function Extrato() {
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
   const {
-    data: transactions,
+    data: rawTransactions,
     isLoading,
     isError,
   } = useExtrato({
@@ -59,18 +67,23 @@ export default function Extrato() {
   const deleteTransaction = useDeleteTransaction();
 
   const categoryMap = useMemo(
-    () => new Map(categories?.map((category) => [category.id, category])),
+    () => new Map(categories?.map((c) => [c.id, c])),
     [categories],
   );
   const accountMap = useMemo(
-    () => new Map(accounts?.map((account) => [account.id, account])),
+    () => new Map(accounts?.map((a) => [a.id, a])),
     [accounts],
   );
 
+  // Filter transactions by type filter
+  const transactions = useMemo(() => {
+    if (!rawTransactions) return [];
+    if (tipoFilter === 'ALL') return rawTransactions;
+    return rawTransactions.filter((t) => t.tipo === tipoFilter);
+  }, [rawTransactions, tipoFilter]);
+
   const groups = useMemo(() => {
-    const sorted = [...(transactions ?? [])].sort((a, b) =>
-      b.data.localeCompare(a.data),
-    );
+    const sorted = [...transactions].sort((a, b) => b.data.localeCompare(a.data));
     const byDay = new Map<string, Transaction[]>();
     for (const transaction of sorted) {
       const day = transaction.data.slice(0, 10);
@@ -86,7 +99,7 @@ export default function Extrato() {
         id: deleting.id,
         accountId: deleting.accountId,
       });
-      toast.success('Transação excluída');
+      toast.success('Transação excluída com sucesso');
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : 'Não foi possível excluir',
@@ -97,165 +110,239 @@ export default function Extrato() {
   }
 
   return (
-    <div className="p-4 pb-24">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="flex flex-col gap-4 p-4">
+      {/* Month Navigator Header */}
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-3 py-2">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setMes(shiftMonth(mes, -1))}
+          className="size-9 rounded-xl text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
         >
-          <ChevronLeft />
+          <IconChevronLeft size={20} />
         </Button>
-        <span className="text-sm font-medium">{formatMonthLabel(mes)}</span>
+        <span className="text-base font-bold text-foreground tracking-tight">
+          {formatMonthLabel(mes)}
+        </span>
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setMes(shiftMonth(mes, 1))}
+          className="size-9 rounded-xl text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
         >
-          <ChevronRight />
+          <IconChevronRight size={20} />
         </Button>
       </div>
 
-      <div className="mb-4 flex gap-2">
+      {/* Quick Type Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          type="button"
+          onClick={() => setTipoFilter('ALL')}
+          className={cn(
+            'rounded-full px-4 py-1.5 text-xs font-semibold transition-all',
+            tipoFilter === 'ALL'
+              ? 'bg-primary text-primary-foreground shadow-[0_0_12px_rgba(0,200,255,0.3)]'
+              : 'bg-foreground/5 border border-border text-muted-foreground hover:bg-foreground/10',
+          )}
+        >
+          Tudo
+        </button>
+        <button
+          type="button"
+          onClick={() => setTipoFilter('RECEITA')}
+          className={cn(
+            'rounded-full px-4 py-1.5 text-xs font-semibold transition-all',
+            tipoFilter === 'RECEITA'
+              ? 'bg-success text-success-foreground shadow-[0_0_12px_rgba(34,211,160,0.3)]'
+              : 'bg-foreground/5 border border-border text-muted-foreground hover:bg-foreground/10',
+          )}
+        >
+          Entradas
+        </button>
+        <button
+          type="button"
+          onClick={() => setTipoFilter('DESPESA')}
+          className={cn(
+            'rounded-full px-4 py-1.5 text-xs font-semibold transition-all',
+            tipoFilter === 'DESPESA'
+              ? 'bg-foreground text-background'
+              : 'bg-foreground/5 border border-border text-muted-foreground hover:bg-foreground/10',
+          )}
+        >
+          Saídas
+        </button>
+      </div>
+
+      {/* Dropdown Filters */}
+      <div className="flex gap-2">
         <Select value={categoriaId} onValueChange={setCategoriaId}>
-          <SelectTrigger className="flex-1">
-            <SelectValue />
+          <SelectTrigger className="flex-1 rounded-xl border-border bg-card text-xs font-medium text-foreground">
+            <SelectValue placeholder="Categoria" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>Todas as categorias</SelectItem>
-            {categories?.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.nome}
+            {categories?.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.nome}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         <Select value={accountId} onValueChange={setAccountId}>
-          <SelectTrigger className="flex-1">
-            <SelectValue />
+          <SelectTrigger className="flex-1 rounded-xl border-border bg-card text-xs font-medium text-foreground">
+            <SelectValue placeholder="Conta" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>Todas as contas</SelectItem>
-            {accounts?.map((account) => (
-              <SelectItem key={account.id} value={account.id}>
-                {account.nome}
+            {accounts?.map((a) => (
+              <SelectItem key={a.id} value={a.id}>
+                {a.nome}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
+      {/* Loading Skeleton */}
       {isLoading && (
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-16 w-full rounded-2xl bg-foreground/5" />
+          <Skeleton className="h-16 w-full rounded-2xl bg-foreground/5" />
+          <Skeleton className="h-16 w-full rounded-2xl bg-foreground/5" />
         </div>
       )}
 
       {isError && (
-        <p className="text-sm text-muted-foreground">
+        <p className="py-4 text-center text-sm font-medium text-destructive">
           Não foi possível carregar o extrato.
         </p>
       )}
 
-      {transactions && transactions.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          Nenhuma transação neste mês.
-        </p>
+      {!isLoading && groups.length === 0 && (
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-8 text-center">
+          <IconFilter size={32} className="text-muted-foreground mb-2" />
+          <p className="text-sm font-medium text-muted-foreground">
+            Nenhuma transação encontrada para este filtro.
+          </p>
+        </div>
       )}
 
-      {groups.map(([day, items]) => (
-        <section key={day} className="mb-4">
-          <h2 className="mb-2 text-xs font-medium text-muted-foreground">
-            {formatDateShort(items[0].data)}
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {items.map((transaction) => {
-              const isLocked = Boolean(transaction.purchaseId);
-              const category = categoryMap.get(transaction.categoryId);
-              const account = accountMap.get(transaction.accountId);
+      {/* Grouped Days */}
+      {groups.map(([day, items]) => {
+        const dayTotal = items.reduce((acc, item) => {
+          const val = Number(item.valor);
+          return item.tipo === 'RECEITA' ? acc + val : acc - val;
+        }, 0);
 
-              return (
-                <li
-                  key={transaction.id}
-                  className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5"
-                >
-                  <button
-                    type="button"
-                    disabled={isLocked}
-                    onClick={() => navigate(`/transacoes/${transaction.id}`)}
-                    className="flex flex-1 items-center gap-3 text-left disabled:cursor-default"
+        return (
+          <section key={day} className="flex flex-col gap-2">
+            <div className="flex items-center justify-between px-1 pt-2">
+              <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                {formatDateShort(items[0].data)}
+              </span>
+              <span
+                className={cn(
+                  'text-xs font-semibold tabular-nums',
+                  dayTotal >= 0 ? 'text-success' : 'text-muted-foreground',
+                )}
+              >
+                {dayTotal >= 0 ? '+' : ''} {formatMoney(dayTotal)}
+              </span>
+            </div>
+
+            <div className="flex flex-col rounded-2xl border border-border bg-card overflow-hidden">
+              {items.map((transaction) => {
+                const isLocked = Boolean(transaction.purchaseId);
+                const category = categoryMap.get(transaction.categoryId);
+                const account = accountMap.get(transaction.accountId);
+                const isReceita = transaction.tipo === 'RECEITA';
+
+                return (
+                  <div
+                    key={transaction.id}
+                    className="flex items-center gap-3 border-b border-border p-3.5 last:border-b-0"
                   >
-                    <span
-                      className="flex size-9 shrink-0 items-center justify-center rounded-full text-base"
-                      style={{ backgroundColor: category?.cor ?? undefined }}
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => navigate(`/transacoes/${transaction.id}`)}
+                      className="flex flex-1 items-center gap-3 text-left min-w-0 disabled:cursor-default"
                     >
-                      {category?.icone}
-                    </span>
-                    <span className="flex-1">
-                      <span className="block text-sm font-medium">
-                        {transaction.descricao}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">
-                        {category?.nome ?? 'Sem categoria'} ·{' '}
-                        {account?.nome ?? 'Sem conta'}
-                      </span>
-                    </span>
-                  </button>
+                      <CategoryIcon
+                        name={category?.nome}
+                        icon={category?.icone}
+                        color={category?.cor}
+                        size={18}
+                        className="size-10 rounded-2xl"
+                      />
+                      <div className="flex flex-1 flex-col truncate">
+                        <span className="truncate text-sm font-bold text-foreground">
+                          {transaction.descricao}
+                        </span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {category?.nome ?? 'Sem categoria'} ·{' '}
+                          {account?.nome ?? 'Sem conta'}
+                        </span>
+                      </div>
+                    </button>
 
-                  <div className="flex flex-col items-end gap-1">
-                    <span
-                      className={cn(
-                        'text-sm font-semibold',
-                        transaction.tipo === 'RECEITA'
-                          ? 'text-emerald-600'
-                          : 'text-red-600',
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span
+                        className={cn(
+                          'text-sm font-extrabold tabular-nums',
+                          isReceita ? 'text-success' : 'text-foreground',
+                        )}
+                      >
+                        {isReceita ? '+' : '-'} {formatMoney(transaction.valor)}
+                      </span>
+
+                      {isLocked && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                          <IconLock size={10} />
+                          {transaction.parcelaNumero}/{transaction.parcelaTotal}
+                        </span>
                       )}
-                    >
-                      {transaction.tipo === 'RECEITA' ? '+' : '-'}
-                      {formatMoney(transaction.valor)}
-                    </span>
-                    {isLocked && (
-                      <Badge variant="outline" className="text-xs">
-                        Parcela {transaction.parcelaNumero}/
-                        {transaction.parcelaTotal}
-                      </Badge>
+                    </div>
+
+                    {!isLocked && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Excluir transação"
+                        onClick={() => setDeleting(transaction)}
+                        className="size-8 rounded-xl text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
+                      >
+                        <IconTrash size={16} />
+                      </Button>
                     )}
                   </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
 
-                  {!isLocked && (
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Excluir transação"
-                      onClick={() => setDeleting(transaction)}
-                    >
-                      <Trash2 />
-                    </Button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
-
+      {/* Delete confirmation dialog */}
       <AlertDialog
         open={Boolean(deleting)}
         onOpenChange={(open) => !open && setDeleting(undefined)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir transação?</AlertDialogTitle>
             <AlertDialogDescription>
               A transação "{deleting?.descricao}" será removida permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-2">
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive font-bold text-white hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

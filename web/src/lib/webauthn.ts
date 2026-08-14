@@ -23,7 +23,7 @@ export async function registerPasskey(): Promise<void> {
   });
 }
 
-export async function loginWithPasskey(): Promise<string> {
+export async function loginWithPasskey(): Promise<{ token: string; name: string }> {
   const options = await apiFetch<PublicKeyCredentialRequestOptionsJSON>(
     '/auth/webauthn/login/options',
     {
@@ -32,7 +32,7 @@ export async function loginWithPasskey(): Promise<string> {
     },
   );
   const assertion = await startAuthentication({ optionsJSON: options });
-  const { token } = await apiFetch<{ token: string }>(
+  return apiFetch<{ token: string; name: string }>(
     '/auth/webauthn/login/verify',
     {
       method: 'POST',
@@ -40,5 +40,4 @@ export async function loginWithPasskey(): Promise<string> {
       skipAuth: true,
     },
   );
-  return token;
 }

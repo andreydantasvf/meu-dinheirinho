@@ -1,149 +1,318 @@
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Cell, Pie, PieChart } from 'recharts';
-import { Plus, ShoppingBag } from 'lucide-react';
+import {
+  IconArrowUpRight,
+  IconChevronLeft,
+  IconChevronRight,
+  IconCreditCard,
+} from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '@/components/ui/chart';
 import { useDashboard } from '@/hooks/use-dashboard';
+import { useExtrato } from '@/hooks/use-transactions';
+import { useCategories } from '@/hooks/use-categories';
+import { useAccounts } from '@/hooks/use-accounts';
+import { CategoryIcon } from '@/components/category-icon';
 import { formatMoney } from '@/lib/money';
+import { currentMonth, formatMonthLabel, shiftMonth } from '@/lib/date';
 import { cn } from '@/lib/utils';
-
-const chartColors = [
-  'var(--chart-1)',
-  'var(--chart-2)',
-  'var(--chart-3)',
-  'var(--chart-4)',
-  'var(--chart-5)',
-];
+import { getUserName } from '@/lib/auth';
 
 export default function Home() {
-  const { data: dashboard, isLoading, isError } = useDashboard();
+  const userName = getUserName();
+  const [mes, setMes] = useState(currentMonth());
+  const { data: dashboard, isLoading: isDashLoading, isError: isDashError } = useDashboard(mes);
+  const { data: transactions } = useExtrato({ mes });
+  const { data: categories } = useCategories();
+  const { data: accounts } = useAccounts();
 
-  const gastoPorCategoria = dashboard?.gastoPorCategoria ?? [];
-  const chartData = gastoPorCategoria.map((item, index) => ({
-    categoriaId: item.categoriaId,
-    nome: item.nome,
-    total: Number(item.total),
-    fill: chartColors[index % chartColors.length],
-  }));
-  const chartConfig: ChartConfig = Object.fromEntries(
-    chartData.map((item) => [
-      item.categoriaId,
-      { label: item.nome, color: item.fill },
-    ]),
+  const categoryMap = useMemo(
+    () => new Map(categories?.map((c) => [c.id, c])),
+    [categories],
+  );
+  const accountMap = useMemo(
+    () => new Map(accounts?.map((a) => [a.id, a])),
+    [accounts],
   );
 
   const saldoMes = dashboard ? Number(dashboard.saldoMes) : 0;
+  
+  const gastoPorCategoria = useMemo(() => {
+    return dashboard?.gastoPorCategoria ?? [];
+  }, [dashboard?.gastoPorCategoria]);
+
+  // Calculate total expense in category breakdown for progress bars
+  const totalGastoCategorias = useMemo(() => {
+    return gastoPorCategoria.reduce((acc, cat) => acc + Number(cat.total), 0);
+  }, [gastoPorCategoria]);
+
+  // Separate recent transactions
+  const recentTransactions = useMemo(() => {
+    return [...(transactions ?? [])]
+      .sort((a, b) => b.data.localeCompare(a.data))
+      .slice(0, 4);
+  }, [transactions]);
+
+  // Total income vs total expense from transactions in current month
+  const { totalEntradas, totalSaidas } = useMemo(() => {
+    let entradas = 0;
+    let saidas = 0;
+    for (const t of transactions ?? []) {
+      const val = Number(t.valor);
+      if (t.tipo === 'RECEITA') entradas += val;
+      else saidas += val;
+    }
+    return { totalEntradas: entradas, totalSaidas: saidas };
+  }, [transactions]);
 
   return (
-    <div className="p-4 pb-24">
-      <div className="mb-4 flex gap-2">
-        <Button asChild className="flex-1">
-          <Link to="/transacoes/nova">
-            <Plus /> Nova transação
-          </Link>
+    <div className="flex flex-col gap-5 p-4">
+      {userName && (
+        <p className="text-sm text-muted-foreground">Olá, {userName}</p>
+      )}
+
+      {/* Month Navigator */}
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-3 py-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setMes(shiftMonth(mes, -1))}
+          className="size-9 rounded-xl text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+        >
+          <IconChevronLeft size={20} />
         </Button>
-        <Button asChild variant="outline" className="flex-1">
-          <Link to="/compras/nova">
-            <ShoppingBag /> Compra parcelada
-          </Link>
+        <span className="text-base font-bold text-foreground tracking-tight">
+          {formatMonthLabel(mes)}
+        </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setMes(shiftMonth(mes, 1))}
+          className="size-9 rounded-xl text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+        >
+          <IconChevronRight size={20} />
         </Button>
       </div>
 
-      {isLoading && (
-        <div className="flex flex-col gap-3">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-64 w-full" />
+      {isDashLoading && (
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-44 w-full rounded-3xl bg-foreground/5" />
+          <Skeleton className="h-48 w-full rounded-3xl bg-foreground/5" />
+          <Skeleton className="h-44 w-full rounded-3xl bg-foreground/5" />
         </div>
       )}
 
-      {isError && (
-        <p className="text-sm text-muted-foreground">
-          Não foi possível carregar o painel.
-        </p>
+      {isDashError && (
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-center text-sm text-destructive">
+          Não foi possível carregar o painel financeiro.
+        </div>
       )}
 
       {dashboard && (
         <>
-          <div className="mb-4 rounded-lg border border-border bg-card p-4">
-            <p className="text-sm text-muted-foreground">Saldo do mês</p>
-            <p
-              className={cn(
-                'text-2xl font-semibold',
-                saldoMes >= 0 ? 'text-emerald-600' : 'text-red-600',
-              )}
-            >
-              {formatMoney(dashboard.saldoMes)}
-            </p>
+          {/* Hero Card - Saldo do Mês */}
+          <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card to-popover p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+                Saldo do Mês
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success">
+                <IconArrowUpRight size={14} /> Ativo
+              </span>
+            </div>
+
+            <div className="my-3 flex items-baseline gap-1">
+              <span className="text-xl font-semibold text-muted-foreground">R$</span>
+              <span
+                className={cn(
+                  'text-4xl font-extrabold tracking-tight tabular-nums',
+                  saldoMes >= 0 ? 'text-foreground' : 'text-destructive',
+                )}
+              >
+                {formatMoney(dashboard.saldoMes).replace('R$', '').trim()}
+              </span>
+            </div>
+
+            {/* Income & Expense Breakdown */}
+            <div className="mt-4 flex gap-3">
+              <div className="flex flex-1 flex-col gap-1 rounded-xl bg-foreground/[0.04] p-3 border border-border">
+                <span className="text-xs font-medium text-muted-foreground">Entradas</span>
+                <span className="text-base font-bold text-success tabular-nums">
+                  R$ {formatMoney(totalEntradas).replace('R$', '').trim()}
+                </span>
+              </div>
+              <div className="flex flex-1 flex-col gap-1 rounded-xl bg-foreground/[0.04] p-3 border border-border">
+                <span className="text-xs font-medium text-muted-foreground">Saídas</span>
+                <span className="text-base font-bold text-foreground tabular-nums">
+                  R$ {formatMoney(totalSaidas).replace('R$', '').trim()}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="mb-4 rounded-lg border border-border bg-card p-4">
-            <p className="mb-2 text-sm font-medium text-muted-foreground">
-              Gastos por categoria
-            </p>
-            {chartData.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+          {/* Gasto por Categoria Widget */}
+          <div className="rounded-3xl border border-border bg-card p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+                Gasto por categoria
+              </span>
+              <Link
+                to="/categorias"
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                Ver todas
+              </Link>
+            </div>
+
+            {gastoPorCategoria.length === 0 ? (
+              <p className="py-2 text-sm text-muted-foreground">
                 Nenhum gasto registrado neste mês.
               </p>
             ) : (
-              <ChartContainer
-                config={chartConfig}
-                className="mx-auto aspect-square max-h-64"
-              >
-                <PieChart>
-                  <ChartTooltip
-                    content={
-                      <ChartTooltipContent nameKey="categoriaId" hideLabel />
-                    }
-                  />
-                  <Pie
-                    data={chartData}
-                    dataKey="total"
-                    nameKey="categoriaId"
-                    innerRadius={50}
-                    outerRadius={80}
-                  >
-                    {chartData.map((entry) => (
-                      <Cell key={entry.categoriaId} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ChartContainer>
+              <div className="flex flex-col gap-3.5">
+                {gastoPorCategoria.map((item) => {
+                  const cat = categoryMap.get(item.categoriaId);
+                  const itemVal = Number(item.total);
+                  const pct = totalGastoCategorias > 0
+                    ? Math.round((itemVal / totalGastoCategorias) * 100)
+                    : 0;
+
+                  return (
+                    <div key={item.categoriaId} className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <CategoryIcon
+                            name={item.nome}
+                            icon={cat?.icone}
+                            color={cat?.cor}
+                            size={14}
+                            className="size-6 rounded-lg"
+                          />
+                          <span className="font-semibold text-foreground">
+                            {item.nome}
+                          </span>
+                        </div>
+                        <span className="font-semibold text-muted-foreground tabular-nums">
+                          {formatMoney(item.total)} ({pct}%)
+                        </span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/5">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: cat?.cor || 'var(--primary)',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
 
-          <div className="rounded-lg border border-border bg-card p-4">
-            <p className="mb-2 text-sm font-medium text-muted-foreground">
-              Fatura atual por cartão
-            </p>
+          {/* Últimas Transações Widget */}
+          <div className="rounded-3xl border border-border bg-card p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+                Últimas transações
+              </span>
+              <Link
+                to="/extrato"
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                Extrato completo
+              </Link>
+            </div>
+
+            {recentTransactions.length === 0 ? (
+              <p className="py-2 text-sm text-muted-foreground">Nenhuma transação recente.</p>
+            ) : (
+              <div className="flex flex-col">
+                {recentTransactions.map((t) => {
+                  const cat = categoryMap.get(t.categoryId);
+                  const acc = accountMap.get(t.accountId);
+                  const isReceita = t.tipo === 'RECEITA';
+
+                  return (
+                    <div
+                      key={t.id}
+                      className="flex items-center justify-between border-b border-border py-3 last:border-b-0"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <CategoryIcon
+                          name={cat?.nome}
+                          icon={cat?.icone}
+                          color={cat?.cor}
+                          size={18}
+                          className="size-10 rounded-2xl"
+                        />
+                        <div className="flex flex-col truncate">
+                          <span className="truncate text-sm font-semibold text-foreground">
+                            {t.descricao}
+                          </span>
+                          <span className="truncate text-xs text-muted-foreground">
+                            {cat?.nome ?? 'Geral'} · {acc?.nome ?? 'Conta'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span
+                        className={cn(
+                          'text-sm font-bold tabular-nums shrink-0 ml-2',
+                          isReceita ? 'text-success' : 'text-foreground',
+                        )}
+                      >
+                        {isReceita ? '+' : '-'} {formatMoney(t.valor)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Fatura por Cartão Widget */}
+          <div className="rounded-3xl border border-border bg-card p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+                Cartões de crédito
+              </span>
+              <Link
+                to="/cartoes"
+                className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              >
+                Detalhes <IconChevronRight size={14} />
+              </Link>
+            </div>
+
             {dashboard.faturaAtualPorCartao.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Nenhum cartão com fatura este mês.
+              <p className="py-2 text-sm text-muted-foreground">
+                Nenhum cartão com fatura aberta este mês.
               </p>
             ) : (
-              <ul className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2.5">
                 {dashboard.faturaAtualPorCartao.map((cartao) => (
-                  <li
+                  <Link
                     key={cartao.accountId}
-                    className="flex items-center justify-between text-sm"
+                    to="/cartoes"
+                    className="flex items-center justify-between rounded-xl bg-foreground/[0.03] p-3.5 border border-border hover:bg-foreground/[0.06] transition-colors"
                   >
-                    <Link
-                      to="/cartoes"
-                      className="text-foreground hover:underline"
-                    >
-                      {cartao.nome}
-                    </Link>
-                    <span className="font-medium">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <IconCreditCard size={20} />
+                      </div>
+                      <span className="text-sm font-bold text-foreground">
+                        {cartao.nome}
+                      </span>
+                    </div>
+                    <span className="text-sm font-extrabold text-foreground tabular-nums">
                       {formatMoney(cartao.total)}
                     </span>
-                  </li>
+                  </Link>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         </>
