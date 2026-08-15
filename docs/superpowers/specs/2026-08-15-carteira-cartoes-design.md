@@ -1,7 +1,7 @@
 # Spec: Carrossel de cartões estilo carteira com itens da fatura atual
 
 - **Data**: 2026-08-15
-- **Status**: aprovado (pendente de plano de implementação)
+- **Status**: implementado
 - **Relacionado**: [`docs/web-architecture.md`](../../web-architecture.md), [`docs/api.md`](../../api.md)
 
 ## Contexto
