@@ -3,9 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   IconChevronLeft,
   IconChevronRight,
-  IconTrash,
   IconFilter,
-  IconLock,
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -30,7 +28,6 @@ import {
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useDeleteTransaction, useExtrato } from '@/hooks/use-transactions';
-import { CategoryIcon } from '@/components/category-icon';
 import {
   formatDateShort,
   currentMonth,
@@ -41,6 +38,7 @@ import { formatMoney } from '@/lib/money';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { Transaction } from '@/types/entities';
+import { TransactionRow } from '@/components/transaction-row';
 
 const ALL = 'all';
 type TypeFilter = 'ALL' | 'RECEITA' | 'DESPESA';
@@ -253,73 +251,16 @@ export default function Extrato() {
             </div>
 
             <div className="flex flex-col rounded-2xl border border-border bg-card overflow-hidden">
-              {items.map((transaction) => {
-                const isLocked = Boolean(transaction.purchaseId);
-                const category = categoryMap.get(transaction.categoryId);
-                const account = accountMap.get(transaction.accountId);
-                const isReceita = transaction.tipo === 'RECEITA';
-
-                return (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center gap-3 border-b border-border p-3.5 last:border-b-0"
-                  >
-                    <button
-                      type="button"
-                      disabled={isLocked}
-                      onClick={() => navigate(`/transacoes/${transaction.id}`)}
-                      className="flex flex-1 items-center gap-3 text-left min-w-0 disabled:cursor-default"
-                    >
-                      <CategoryIcon
-                        name={category?.nome}
-                        icon={category?.icone}
-                        color={category?.cor}
-                        size={18}
-                        className="size-10 rounded-2xl"
-                      />
-                      <div className="flex flex-1 flex-col truncate">
-                        <span className="truncate text-sm font-bold text-foreground">
-                          {transaction.descricao}
-                        </span>
-                        <span className="truncate text-xs text-muted-foreground">
-                          {category?.nome ?? 'Sem categoria'} ·{' '}
-                          {account?.nome ?? 'Sem conta'}
-                        </span>
-                      </div>
-                    </button>
-
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span
-                        className={cn(
-                          'text-sm font-extrabold tabular-nums',
-                          isReceita ? 'text-success' : 'text-foreground',
-                        )}
-                      >
-                        {isReceita ? '+' : '-'} {formatMoney(transaction.valor)}
-                      </span>
-
-                      {isLocked && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                          <IconLock size={10} />
-                          {transaction.parcelaNumero}/{transaction.parcelaTotal}
-                        </span>
-                      )}
-                    </div>
-
-                    {!isLocked && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Excluir transação"
-                        onClick={() => setDeleting(transaction)}
-                        className="size-8 rounded-xl text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
-                      >
-                        <IconTrash size={16} />
-                      </Button>
-                    )}
-                  </div>
-                );
-              })}
+              {items.map((transaction) => (
+                <TransactionRow
+                  key={transaction.id}
+                  transaction={transaction}
+                  category={categoryMap.get(transaction.categoryId)}
+                  account={accountMap.get(transaction.accountId)}
+                  onEdit={() => navigate(`/transacoes/${transaction.id}`)}
+                  onDelete={() => setDeleting(transaction)}
+                />
+              ))}
             </div>
           </section>
         );
