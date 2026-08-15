@@ -10,14 +10,14 @@ import {
 } from '@/components/ui/carousel';
 import { useFatura } from '@/hooks/use-fatura';
 import { formatMoney } from '@/lib/money';
+import { cn } from '@/lib/utils';
 import type { Account } from '@/types/entities';
 
 const MAX_PEEK = 2;
-const PEEK_STEP_PX = 16;
-const SCALE_STEP = 0.06;
-const TRANSLATE_Y_STEP = 10;
-const OPACITY_STEP = 0.35;
-const OPACITY_FLOOR = 0.15;
+const SCALE_STEP = 0.035;
+const TRANSLATE_Y_STEP = 16;
+const OPACITY_STEP = 0.18;
+const OPACITY_FLOOR = 0.35;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -35,6 +35,7 @@ export function CardWallet({
   onFocusChange: (accountId: string | undefined) => void;
 }) {
   const [api, setApi] = useState<CarouselApi>();
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const applyStackTween = useCallback(() => {
@@ -45,12 +46,21 @@ export function CardWallet({
 
     const selectedLeft = selectedNode.offsetLeft;
     const scrollProgress = api.scrollProgress();
+    const snapList = api.scrollSnapList();
+    // scrollProgress() and scrollSnapList() are both normalized to [0, 1]
+    // across the *entire* scrollable range, so the gap between adjacent
+    // snap points shrinks as more cards are added (e.g. 1/3 apart with 4
+    // cards, 1/9 with 10). Rescale into card-index units — 1.0 == "one
+    // card away" — so peek depth stays visually consistent no matter how
+    // many cards are in the wallet.
+    const totalSteps = snapList.length > 1 ? snapList.length - 1 : 1;
+    const cardPosition = scrollProgress * totalSteps;
 
-    api.scrollSnapList().forEach((snapPoint, index) => {
+    snapList.forEach((_snapPoint, index) => {
       const node = itemRefs.current[index];
       if (!node) return;
 
-      const diffToTarget = snapPoint - scrollProgress;
+      const diffToTarget = index - cardPosition;
 
       if (diffToTarget < -0.05 || diffToTarget > MAX_PEEK + 0.5) {
         node.style.opacity = '0';
@@ -61,7 +71,12 @@ export function CardWallet({
 
       const clamped = clamp(diffToTarget, 0, MAX_PEEK);
       const pullBack = node.offsetLeft - selectedLeft;
-      const translateX = -pullBack + clamped * PEEK_STEP_PX;
+      // Peek is revealed purely via vertical offset + scale (cards stack
+      // straight behind one another), not a horizontal nudge — the front
+      // card is full-width (matching the sections below it), so there's no
+      // reserved side margin for a rightward peek to sit in without being
+      // clipped by the carousel viewport's overflow-hidden bounds.
+      const translateX = -pullBack;
       const scale = 1 - clamped * SCALE_STEP;
       const translateY = clamped * TRANSLATE_Y_STEP;
       const opacity = Math.max(1 - clamped * OPACITY_STEP, OPACITY_FLOOR);
@@ -100,6 +115,7 @@ export function CardWallet({
       // until a page reload.
       const index = Math.min(api!.selectedScrollSnap(), cards.length - 1);
       onFocusChange(cards[index]?.id);
+      setSelectedIndex(index);
     }
 
     handleSelect();
@@ -121,16 +137,22 @@ export function CardWallet({
   }, [api, cards, applyStackTween]);
 
   return (
-    <div className="h-[196px]">
+    <div>
       <Carousel setApi={setApi} opts={{ align: 'start', containScroll: 'trimSnaps' }}>
         <CarouselContent>
           {cards.map((account, index) => (
-            <CarouselItem key={account.id} className="basis-[85%] pl-3">
+            <CarouselItem key={account.id} className="basis-full">
               <div
                 ref={(node) => {
                   itemRefs.current[index] = node;
                 }}
-                className="relative transition-transform duration-300 ease-out will-change-transform"
+                // The embla viewport (ui/carousel.tsx's overflow-hidden div)
+                // auto-sizes to this item's natural, untransformed layout
+                // height — a peeking card's translateY only shows if that
+                // height reserves room for it. pb-9 pads every item (front
+                // card included) so the deepest peek (MAX_PEEK *
+                // TRANSLATE_Y_STEP = 32px) never gets clipped.
+                className="relative pb-9 will-change-transform"
               >
                 <CardFace
                   account={account}
@@ -142,6 +164,20 @@ export function CardWallet({
           ))}
         </CarouselContent>
       </Carousel>
+
+      {cards.length > 1 && (
+        <div className="mt-2 flex justify-center gap-1.5">
+          {cards.map((account, index) => (
+            <span
+              key={account.id}
+              className={cn(
+                'h-1.5 rounded-full transition-all duration-300',
+                index === selectedIndex ? 'w-4 bg-primary' : 'w-1.5 bg-foreground/20',
+              )}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
