@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Prisma } from '../generated/prisma/client';
+import { Prisma } from '../generated/prisma';
 import {
   agruparFaturaAtualPorCartao,
   agruparFaturasFuturas,

@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
+    include: ['src/**/*.test.ts'],
     env: {
       DATABASE_URL: 'file:./prisma/dev.db',
       AUTH_PASSWORD: 'test-password',

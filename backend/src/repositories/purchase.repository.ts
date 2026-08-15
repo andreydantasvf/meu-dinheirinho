@@ -1,4 +1,4 @@
-import { Prisma } from '../generated/prisma/client';
+import { Prisma } from '../generated/prisma';
 import { prisma } from '../lib/prisma';
 import type { CreatePurchaseInput } from '../validators/purchase.schema';
 

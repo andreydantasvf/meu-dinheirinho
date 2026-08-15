@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { accountRepository } from '../repositories/account.repository';
 import { reportsRepository } from '../repositories/reports.repository';
-import { Prisma } from '../generated/prisma/client';
+import { Prisma } from '../generated/prisma';
 import { reportsService } from './reports.service';
 
 vi.mock('../repositories/reports.repository', () => ({

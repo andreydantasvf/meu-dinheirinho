@@ -1,4 +1,4 @@
-import { Prisma } from '../generated/prisma/client';
+import { Prisma } from '../generated/prisma';
 import { accountRepository } from '../repositories/account.repository';
 import { reportsRepository } from '../repositories/reports.repository';
 import { AppError } from '../types/errors';

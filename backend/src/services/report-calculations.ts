@@ -1,4 +1,4 @@
-import { Prisma } from '../generated/prisma/client';
+import { Prisma } from '../generated/prisma';
 
 export type TransactionForSaldo = { tipo: 'RECEITA' | 'DESPESA'; valor: Prisma.Decimal };
 
