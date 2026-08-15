@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { AccountFormDialog } from '@/components/account-form-dialog';
 import { CardWallet } from '@/components/card-wallet';
+import { CardInvoiceDetails } from '@/components/card-invoice-details';
 import { useAccounts, useDeleteAccount } from '@/hooks/use-accounts';
 import { ApiError } from '@/lib/api';
 import { accountTypeLabels } from '@/types/entities';
@@ -40,6 +41,7 @@ export default function Cartoes() {
   );
   const others =
     accounts?.filter((account) => account.tipo !== 'CARTAO_CREDITO') ?? [];
+  const focusedCard = cards.find((account) => account.id === focusedAccountId);
 
   function openCreate() {
     setEditing(undefined);
@@ -125,6 +127,9 @@ export default function Cartoes() {
             onDelete={setDeleting}
             onFocusChange={setFocusedAccountId}
           />
+          {focusedCard && (
+            <CardInvoiceDetails key={focusedCard.id} account={focusedCard} />
+          )}
         </section>
       )}
 
