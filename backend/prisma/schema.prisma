@@ -41,11 +41,12 @@ model Account {
 }
 
 model Category {
-  id    String       @id @default(cuid())
-  nome  String
-  tipo  CategoryType
-  icone String?
-  cor   String?
+  id         String       @id @default(cuid())
+  nome       String
+  tipo       CategoryType
+  icone      String?
+  cor        String?
+  metaMensal Decimal?     @map("meta_mensal")
 
   transactions Transaction[]
   purchases    Purchase[]

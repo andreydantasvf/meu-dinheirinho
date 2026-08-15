@@ -1,5 +1,5 @@
 // Mirrors backend/prisma/schema.prisma and docs/api.md response shapes.
-// Money fields (valor, valorTotal, limite, total, saldoMes, faturaAtual, limiteDisponivel)
+// Money fields (valor, valorTotal, limite, metaMensal, total, saldoMes, faturaAtual, limiteDisponivel)
 // are Prisma Decimal serialized as strings — never numbers. Always format/parse via lib/money.ts.
 
 export type CategoryType = 'RECEITA' | 'DESPESA';
@@ -18,6 +18,7 @@ export type Category = {
   tipo: CategoryType;
   icone: string | null;
   cor: string | null;
+  metaMensal: string | null;
 };
 
 export type Account = {

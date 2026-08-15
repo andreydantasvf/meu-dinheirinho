@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { IconPencil, IconPlus, IconTrash, IconTag } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -15,16 +15,30 @@ import {
 } from '@/components/ui/alert-dialog';
 import { CategoryFormDialog } from '@/components/category-form-dialog';
 import { useCategories, useDeleteCategory } from '@/hooks/use-categories';
+import { useDashboard } from '@/hooks/use-dashboard';
 import { CategoryIcon } from '@/components/category-icon';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { formatMoney } from '@/lib/money';
 import type { Category } from '@/types/entities';
 
 type TabType = 'DESPESA' | 'RECEITA';
 
 export default function Categorias() {
   const { data: categories, isLoading, isError } = useCategories();
+  const { data: dashboard } = useDashboard();
   const deleteCategory = useDeleteCategory();
+
+  const gastoMap = useMemo(
+    () =>
+      new Map(
+        dashboard?.gastoPorCategoria.map((g) => [
+          g.categoriaId,
+          Number(g.total),
+        ]),
+      ),
+    [dashboard],
+  );
 
   const [activeTab, setActiveTab] = useState<TabType>('DESPESA');
   const [editing, setEditing] = useState<Category | undefined>(undefined);
@@ -132,7 +146,12 @@ export default function Categorias() {
       {/* Category List */}
       {currentCategories.length > 0 && (
         <div className="flex flex-col rounded-3xl border border-border bg-card overflow-hidden">
-          {currentCategories.map((category) => (
+          {currentCategories.map((category) => {
+            const gasto = gastoMap.get(category.id) ?? 0;
+            const meta = category.metaMensal ? Number(category.metaMensal) : null;
+            const overBudget = meta !== null && gasto > meta;
+
+            return (
             <div
               key={category.id}
               className="flex items-center justify-between border-b border-border p-4 last:border-b-0"
@@ -152,6 +171,29 @@ export default function Categorias() {
                   <span className="text-xs text-muted-foreground">
                     {category.tipo === 'DESPESA' ? 'Despesa' : 'Receita'}
                   </span>
+                  {activeTab === 'DESPESA' && meta !== null && (
+                    <div className="mt-1.5 flex w-40 flex-col gap-1">
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/5">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${Math.min(100, (gasto / meta) * 100)}%`,
+                            backgroundColor: overBudget
+                              ? 'var(--destructive)'
+                              : category.cor || 'var(--primary)',
+                          }}
+                        />
+                      </div>
+                      <span
+                        className={cn(
+                          'text-[10px] font-medium tabular-nums',
+                          overBudget ? 'text-destructive' : 'text-muted-foreground',
+                        )}
+                      >
+                        {formatMoney(gasto)} / {formatMoney(meta)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -176,7 +218,8 @@ export default function Categorias() {
                 </Button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

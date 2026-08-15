@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { MoneyInput } from '@/components/money-input';
 import { ApiError } from '@/lib/api';
 import { useCreateCategory, useUpdateCategory } from '@/hooks/use-categories';
 import type { Category } from '@/types/entities';
@@ -34,6 +35,7 @@ const categorySchema = z.object({
   tipo: z.enum(['RECEITA', 'DESPESA']),
   icone: z.string().trim().optional(),
   cor: z.string().trim().optional(),
+  metaMensal: z.string().optional(),
 });
 
 type CategoryFormValues = z.infer<typeof categorySchema>;
@@ -43,6 +45,7 @@ const defaultValues: CategoryFormValues = {
   tipo: 'DESPESA',
   icone: '',
   cor: '#0f766e',
+  metaMensal: '0.00',
 };
 
 export function CategoryFormDialog({
@@ -62,6 +65,7 @@ export function CategoryFormDialog({
     register,
     handleSubmit,
     control,
+    watch,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CategoryFormValues>({
@@ -78,18 +82,29 @@ export function CategoryFormDialog({
             tipo: category.tipo,
             icone: category.icone ?? '',
             cor: category.cor ?? '#0f766e',
+            metaMensal: category.metaMensal ?? '0.00',
           }
         : defaultValues,
     );
   }, [open, category, reset]);
 
+  const tipo = watch('tipo');
+  const isDespesa = tipo === 'DESPESA';
+
   async function onSubmit(values: CategoryFormValues) {
+    const payload = {
+      ...values,
+      metaMensal:
+        isDespesa && Number(values.metaMensal) > 0
+          ? values.metaMensal
+          : null,
+    };
     try {
       if (isEditing && category) {
-        await updateCategory.mutateAsync({ id: category.id, ...values });
+        await updateCategory.mutateAsync({ id: category.id, ...payload });
         toast.success('Categoria atualizada');
       } else {
-        await createCategory.mutateAsync(values);
+        await createCategory.mutateAsync(payload);
         toast.success('Categoria criada');
       }
       onOpenChange(false);
@@ -124,6 +139,15 @@ export function CategoryFormDialog({
               <FieldLabel htmlFor="tipo">Tipo</FieldLabel>
               <SelectField control={control} name="tipo" />
             </Field>
+
+            {isDespesa && (
+              <Field>
+                <FieldLabel htmlFor="metaMensal">
+                  Meta mensal (opcional)
+                </FieldLabel>
+                <MetaMensalField control={control} />
+              </Field>
+            )}
 
             <Field orientation="horizontal">
               <FieldLabel htmlFor="icone">Ícone (emoji)</FieldLabel>
@@ -176,5 +200,20 @@ function SelectField({
         <SelectItem value="RECEITA">Receita</SelectItem>
       </SelectContent>
     </Select>
+  );
+}
+
+function MetaMensalField({
+  control,
+}: {
+  control: ReturnType<typeof useForm<CategoryFormValues>>['control'];
+}) {
+  const { field } = useController({ control, name: 'metaMensal' });
+  return (
+    <MoneyInput
+      id="metaMensal"
+      value={field.value ?? '0.00'}
+      onChange={field.onChange}
+    />
   );
 }

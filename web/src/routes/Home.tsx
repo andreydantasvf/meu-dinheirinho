@@ -173,9 +173,17 @@ export default function Home() {
                 {gastoPorCategoria.map((item) => {
                   const cat = categoryMap.get(item.categoriaId);
                   const itemVal = Number(item.total);
-                  const pct = totalGastoCategorias > 0
-                    ? Math.round((itemVal / totalGastoCategorias) * 100)
-                    : 0;
+                  const meta = cat?.metaMensal ? Number(cat.metaMensal) : null;
+                  const overBudget = meta !== null && itemVal > meta;
+                  const pct =
+                    meta !== null
+                      ? Math.min(100, (itemVal / meta) * 100)
+                      : totalGastoCategorias > 0
+                        ? Math.round((itemVal / totalGastoCategorias) * 100)
+                        : 0;
+                  const barColor = overBudget
+                    ? 'var(--destructive)'
+                    : cat?.cor || 'var(--primary)';
 
                   return (
                     <div key={item.categoriaId} className="flex flex-col gap-1.5">
@@ -192,8 +200,15 @@ export default function Home() {
                             {item.nome}
                           </span>
                         </div>
-                        <span className="font-semibold text-muted-foreground tabular-nums">
-                          {formatMoney(item.total)} ({pct}%)
+                        <span
+                          className={cn(
+                            'font-semibold tabular-nums',
+                            overBudget ? 'text-destructive' : 'text-muted-foreground',
+                          )}
+                        >
+                          {meta !== null
+                            ? `${formatMoney(item.total)} / ${formatMoney(meta)}`
+                            : `${formatMoney(item.total)} (${pct}%)`}
                         </span>
                       </div>
                       <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/5">
@@ -201,7 +216,7 @@ export default function Home() {
                           className="h-full rounded-full transition-all duration-500"
                           style={{
                             width: `${pct}%`,
-                            backgroundColor: cat?.cor || 'var(--primary)',
+                            backgroundColor: barColor,
                           }}
                         />
                       </div>

@@ -69,16 +69,17 @@ CRUD simples, sem regras de negócio especiais.
 |---|---|---|
 | GET | `/categories` | — |
 | GET | `/categories/:id` | — |
-| POST | `/categories` | `{ nome, tipo, icone?, cor? }` |
+| POST | `/categories` | `{ nome, tipo, icone?, cor?, metaMensal? }` |
 | PUT | `/categories/:id` | qualquer subconjunto dos campos acima |
 | DELETE | `/categories/:id` | — |
 
 - `tipo`: `"RECEITA" | "DESPESA"`
 - `icone`, `cor`: strings livres, opcionais (o mobile decide o que armazenar aqui — ex. nome de ícone e hex color)
+- `metaMensal`: número decimal positivo, opcional — meta de gasto mensal da categoria. Serializado na resposta como **string** (mesma convenção de Decimal, ex. `"300"`), nunca `number`. Só faz sentido para `tipo === "DESPESA"`; o backend não valida isso (é o cliente que garante, mesma filosofia adotada em outros pontos deste endpoint). Enviar `null` explicitamente remove uma meta já definida; omitir o campo em um `PUT` parcial não altera o valor existente.
 
 Response (200/201) de um Category:
 ```json
-{ "id": "...", "nome": "Mercado", "tipo": "DESPESA", "icone": null, "cor": null }
+{ "id": "...", "nome": "Mercado", "tipo": "DESPESA", "icone": null, "cor": null, "metaMensal": null }
 ```
 
 ## Accounts

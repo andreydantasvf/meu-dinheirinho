@@ -8,6 +8,7 @@ export type CategoryInput = {
   tipo: Category['tipo'];
   icone?: string;
   cor?: string;
+  metaMensal?: string | null;
 };
 
 export function useCategories() {
