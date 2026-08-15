@@ -51,18 +51,16 @@ export function CardWallet({
     return () => window.removeEventListener('card-colors-changed', handleColorChange);
   }, []);
 
+  const safeIndex = cards.length > 0 ? Math.min(activeIndex, cards.length - 1) : 0;
+
   // Sync focused card when activeIndex changes or cards list changes
   useEffect(() => {
     if (cards.length === 0) {
       onFocusChange(undefined);
       return;
     }
-    const safeIndex = Math.min(activeIndex, cards.length - 1);
-    if (safeIndex !== activeIndex) {
-      setActiveIndex(safeIndex);
-    }
     onFocusChange(cards[safeIndex]?.id);
-  }, [activeIndex, cards, onFocusChange]);
+  }, [safeIndex, cards, onFocusChange]);
 
   const handleNext = useCallback(() => {
     if (cards.length <= 1) return;
