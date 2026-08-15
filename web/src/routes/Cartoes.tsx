@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   IconCreditCard,
   IconPencil,
   IconTrash,
   IconPlus,
-  IconCalendar,
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -20,10 +19,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { AccountFormDialog } from '@/components/account-form-dialog';
+import { CardWallet } from '@/components/card-wallet';
 import { useAccounts, useDeleteAccount } from '@/hooks/use-accounts';
-import { useFatura } from '@/hooks/use-fatura';
-import { formatMoney } from '@/lib/money';
-import { formatMonthLabel } from '@/lib/date';
 import { ApiError } from '@/lib/api';
 import { accountTypeLabels } from '@/types/entities';
 import type { Account } from '@/types/entities';
@@ -35,9 +32,12 @@ export default function Cartoes() {
   const [editing, setEditing] = useState<Account | undefined>(undefined);
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Account | undefined>(undefined);
+  const [focusedAccountId, setFocusedAccountId] = useState<string | undefined>(undefined);
 
-  const cards =
-    accounts?.filter((account) => account.tipo === 'CARTAO_CREDITO') ?? [];
+  const cards = useMemo(
+    () => accounts?.filter((account) => account.tipo === 'CARTAO_CREDITO') ?? [],
+    [accounts],
+  );
   const others =
     accounts?.filter((account) => account.tipo !== 'CARTAO_CREDITO') ?? [];
 
@@ -119,16 +119,12 @@ export default function Cartoes() {
           <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground px-1">
             Cartões de Crédito
           </span>
-          <div className="flex flex-col gap-4">
-            {cards.map((account) => (
-              <CardSummary
-                key={account.id}
-                account={account}
-                onEdit={() => openEdit(account)}
-                onDelete={() => setDeleting(account)}
-              />
-            ))}
-          </div>
+          <CardWallet
+            cards={cards}
+            onEdit={openEdit}
+            onDelete={setDeleting}
+            onFocusChange={setFocusedAccountId}
+          />
         </section>
       )}
 
@@ -212,121 +208,6 @@ export default function Cartoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
-}
-
-function CardSummary({
-  account,
-  onEdit,
-  onDelete,
-}: {
-  account: Account;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const { data: fatura, isLoading } = useFatura(account.id);
-  const limite = Number(account.limite ?? 0);
-  const disponivel = fatura ? Number(fatura.limiteDisponivel) : limite;
-  const usedPct =
-    limite > 0
-      ? Math.min(100, Math.max(0, ((limite - disponivel) / limite) * 100))
-      : 0;
-
-  return (
-    <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-secondary to-popover p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-      {/* Top Bar of Card */}
-      <div className="flex items-start justify-between">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-lg font-bold text-foreground tracking-tight">{account.nome}</span>
-          <span className="text-xs font-medium text-muted-foreground">
-            {account.diaFechamento ? `Fecha dia ${account.diaFechamento}` : 'Fatura aberta'}{' '}
-            {account.diaVencimento ? `· Vence dia ${account.diaVencimento}` : ''}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-primary uppercase">
-            ABERTA
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onEdit}
-            className="size-7 rounded-lg text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
-          >
-            <IconPencil size={14} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onDelete}
-            className="size-7 rounded-lg text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
-          >
-            <IconTrash size={14} />
-          </Button>
-        </div>
-      </div>
-
-      {isLoading && <Skeleton className="my-4 h-16 w-full rounded-2xl bg-foreground/5" />}
-
-      {fatura && (
-        <>
-          {/* Main invoice figure */}
-          <div className="my-4 flex flex-col gap-1">
-            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
-              Fatura Atual
-            </span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-lg font-semibold text-muted-foreground">R$</span>
-              <span className="text-3xl font-extrabold tracking-tight text-foreground tabular-nums">
-                {formatMoney(fatura.faturaAtual).replace('R$', '').trim()}
-              </span>
-            </div>
-          </div>
-
-          {/* Progress bar of used limit */}
-          <div className="flex flex-col gap-2">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
-              <div
-                className="h-full rounded-full bg-primary shadow-[0_0_16px_rgba(0,200,255,0.5)] transition-all duration-500"
-                style={{ width: `${usedPct}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs font-medium text-muted-foreground">
-              <span>Limite utilizado</span>
-              <span className="font-bold text-foreground tabular-nums">
-                R$ {formatMoney(fatura.limiteDisponivel).replace('R$', '').trim()} disponível
-              </span>
-            </div>
-          </div>
-
-          {/* Future Invoices breakdown */}
-          {fatura.faturasFuturas.length > 0 && (
-            <div className="mt-4 flex flex-col gap-2 border-t border-border pt-3">
-              <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
-                Faturas Futuras
-              </span>
-              <div className="flex flex-col gap-1.5">
-                {fatura.faturasFuturas.map((future) => (
-                  <div
-                    key={future.mes}
-                    className="flex justify-between text-xs font-medium text-muted-foreground"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <IconCalendar size={13} className="text-muted-foreground" />
-                      {formatMonthLabel(future.mes)}
-                    </span>
-                    <span className="font-bold text-foreground tabular-nums">
-                      {formatMoney(future.total)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
     </div>
   );
 }
