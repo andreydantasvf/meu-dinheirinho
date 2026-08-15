@@ -12,6 +12,11 @@ jobs:
         working-directory: backend
     env:
       DATABASE_URL: 'file:./prisma/dev.db'
+      AUTH_PASSWORD: 'test-password'
+      AUTH_TOKEN_SECRET: 'test-token-secret-min-32-chars-long-for-hmac'
+      WEBAUTHN_RP_ID: 'localhost'
+      WEBAUTHN_RP_NAME: 'Meu Dinheirinho Test'
+      WEBAUTHN_ORIGIN: 'http://localhost:5173'
     steps:
       - uses: actions/checkout@v4
 
