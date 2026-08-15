@@ -17,7 +17,6 @@ const MAX_PEEK = 2;
 const SCALE_STEP = 0.035;
 const TRANSLATE_Y_STEP = 16;
 const OPACITY_STEP = 0.18;
-const OPACITY_FLOOR = 0.35;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -40,11 +39,10 @@ export function CardWallet({
 
   const applyStackTween = useCallback(() => {
     if (!api) return;
-    const selectedIndex = api.selectedScrollSnap();
-    const selectedNode = itemRefs.current[selectedIndex];
-    if (!selectedNode) return;
+    const firstNode = itemRefs.current[0];
+    const secondNode = itemRefs.current[1];
+    if (!firstNode) return;
 
-    const selectedLeft = selectedNode.offsetLeft;
     const scrollProgress = api.scrollProgress();
     const snapList = api.scrollSnapList();
     // scrollProgress() and scrollSnapList() are both normalized to [0, 1]
@@ -54,7 +52,25 @@ export function CardWallet({
     // card away" — so peek depth stays visually consistent no matter how
     // many cards are in the wallet.
     const totalSteps = snapList.length > 1 ? snapList.length - 1 : 1;
-    const cardPosition = scrollProgress * totalSteps;
+    // Clamp: embla's rubber-band overscroll at the track's edges pushes
+    // scrollProgress() outside [0, 1], which would otherwise push the last
+    // (or first) card's diffToTarget past the hide threshold below and
+    // blank it out while the user is still mid-drag.
+    const cardPosition = clamp(scrollProgress * totalSteps, 0, totalSteps);
+    // The step between adjacent cards' offsetLeft (their static, untransformed
+    // layout position) — used below to derive a horizontal anchor that
+    // tracks the *continuous* drag position, not the snap index.
+    const step = secondNode ? secondNode.offsetLeft - firstNode.offsetLeft : 0;
+    // Anchoring to `itemRefs.current[api.selectedScrollSnap()].offsetLeft`
+    // (the previous approach) ties every card's horizontal position to a
+    // step function: selectedScrollSnap() flips the instant embla decides
+    // the drag has crossed the snap threshold, but the actual rendered
+    // scroll position (scrollProgress) is still mid-transition at that
+    // exact moment — producing a full card-width jump on every card
+    // simultaneously, right as you cross into the next card. Anchoring to
+    // this continuous position instead keeps the whole stack moving
+    // smoothly with the drag, with no discontinuity at the snap point.
+    const anchorLeft = firstNode.offsetLeft + cardPosition * step;
 
     snapList.forEach((_snapPoint, index) => {
       const node = itemRefs.current[index];
@@ -70,7 +86,7 @@ export function CardWallet({
       }
 
       const clamped = clamp(diffToTarget, 0, MAX_PEEK);
-      const pullBack = node.offsetLeft - selectedLeft;
+      const pullBack = node.offsetLeft - anchorLeft;
       // Peek is revealed purely via vertical offset + scale (cards stack
       // straight behind one another), not a horizontal nudge — the front
       // card is full-width (matching the sections below it), so there's no
@@ -79,7 +95,7 @@ export function CardWallet({
       const translateX = -pullBack;
       const scale = 1 - clamped * SCALE_STEP;
       const translateY = clamped * TRANSLATE_Y_STEP;
-      const opacity = Math.max(1 - clamped * OPACITY_STEP, OPACITY_FLOOR);
+      const opacity = 1 - clamped * OPACITY_STEP;
       const isFocused = clamped < 0.05;
 
       node.style.transform = `translateX(${translateX}px) translateY(${translateY}px) scale(${scale})`;
