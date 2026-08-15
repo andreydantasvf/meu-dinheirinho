@@ -150,9 +150,11 @@ export function CardWallet({
                 // auto-sizes to this item's natural, untransformed layout
                 // height — a peeking card's translateY only shows if that
                 // height reserves room for it. pb-9 pads every item (front
-                // card included) so the deepest peek (MAX_PEEK *
-                // TRANSLATE_Y_STEP = 32px) never gets clipped.
-                className="relative pb-9 will-change-transform"
+                // card included, since the row's auto-height is shared
+                // across all items) so the deepest peek (MAX_PEEK *
+                // TRANSLATE_Y_STEP = 32px) never gets clipped. Skipped
+                // entirely with a single card, where no peek ever renders.
+                className={cn('relative will-change-transform', cards.length > 1 && 'pb-9')}
               >
                 <CardFace
                   account={account}
