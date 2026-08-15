@@ -87,7 +87,18 @@ export function CardWallet({
     }
 
     function handleSelect() {
-      const index = api!.selectedScrollSnap();
+      if (cards.length === 0) {
+        onFocusChange(undefined);
+        return;
+      }
+      // Clamp against the current `cards` length rather than trusting
+      // embla's own index: when a card is deleted, this effect re-runs
+      // synchronously on the next render (via the `cards` dependency)
+      // before embla has resynced its internal snap list to the new,
+      // shorter slide count — `selectedScrollSnap()` can still return an
+      // out-of-range index, which previously left focus stuck on nothing
+      // until a page reload.
+      const index = Math.min(api!.selectedScrollSnap(), cards.length - 1);
       onFocusChange(cards[index]?.id);
     }
 
@@ -96,12 +107,14 @@ export function CardWallet({
     api.on('select', handleSelect);
     api.on('select', applyStackTween);
     api.on('scroll', applyStackTween);
+    api.on('reInit', handleSelect);
     api.on('reInit', applyStackTween);
 
     return () => {
       api.off('select', handleSelect);
       api.off('select', applyStackTween);
       api.off('scroll', applyStackTween);
+      api.off('reInit', handleSelect);
       api.off('reInit', applyStackTween);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
