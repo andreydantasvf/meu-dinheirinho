@@ -114,9 +114,11 @@ export default function Login() {
     <div className="flex min-h-dvh max-w-md mx-auto flex-col items-center justify-center gap-8 bg-background px-8 text-foreground">
       {/* Brand Emblem */}
       <div className="flex flex-col items-center gap-4">
-        <div className="flex size-20 items-center justify-center rounded-3xl bg-gradient-to-br from-card to-background border border-primary/35 font-extrabold text-3xl tracking-tight text-primary shadow-[0_0_48px_rgba(0,200,255,0.25)]">
-          MD
-        </div>
+        <img
+          src="/logo.png"
+          alt="Meu Dinheirinho Logo"
+          className="size-20 object-contain drop-shadow-[0_0_24px_rgba(0,200,255,0.35)]"
+        />
         <div className="text-center">
           <h1 className="text-3xl font-extrabold tracking-tight">Meu Dinheirinho</h1>
           <p className="text-xs font-semibold tracking-[0.25em] text-primary/80 uppercase mt-1">

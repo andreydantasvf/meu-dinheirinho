@@ -19,9 +19,11 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/80 px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 backdrop-blur-md">
       <div className="flex items-center gap-2.5">
-        <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-card to-background border border-primary/30 shadow-[0_0_12px_rgba(0,200,255,0.2)] text-xs font-black text-primary">
-          MD
-        </div>
+        <img
+          src="/logo.png"
+          alt="Meu Dinheirinho Logo"
+          className="size-8 object-contain drop-shadow-[0_0_8px_rgba(0,200,255,0.3)]"
+        />
         <h1 className="text-xl font-bold tracking-tight text-foreground">{title}</h1>
         {!isOnline && (
           <Badge variant="destructive">
