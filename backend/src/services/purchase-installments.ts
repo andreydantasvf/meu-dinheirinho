@@ -1,4 +1,4 @@
-import { Prisma } from '../generated/prisma';
+import { Prisma } from '../generated/prisma/client.js';
 
 export type Installment = {
   valor: Prisma.Decimal;
