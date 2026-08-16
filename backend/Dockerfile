@@ -38,4 +38,5 @@ COPY --from=build /app/src/generated ./src/generated
 EXPOSE 3000
 # Applies any pending migrations before every start — idempotent (no-op if none pending),
 # so this is safe on every container start/restart, not just first deploy.
-CMD ["sh", "-c", "pnpm prisma:deploy && node dist/src/server.js"]
+# CMD ["sh", "-c", "pnpm prisma:deploy && node dist/src/server.js"]
+CMD ["tail", "-f", "/dev/null"]
