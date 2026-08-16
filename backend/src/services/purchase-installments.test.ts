@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Prisma } from '../generated/prisma';
+import { Prisma } from '../generated/prisma/client.js';
 import { generateInstallments } from './purchase-installments';
 
 describe('generateInstallments', () => {
