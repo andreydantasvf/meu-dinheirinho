@@ -21,8 +21,13 @@ CMD ["pnpm", "dev"]
 
 # ---- build: compiles TS + generates Prisma client for production ----
 FROM base AS build
-COPY package.json pnpm-lock.yaml prisma.config.ts ./
+COPY package.json pnpm-lock.yaml prisma.config.ts tsconfig.json ./
 COPY prisma ./prisma
+# tsconfig.json must be present before `pnpm install` (which runs `prisma generate` via
+# postinstall) — without it, the "prisma-client" generator can't see the project's
+# moduleResolution and emits relative imports with explicit ".ts" extensions, which tsc
+# then preserves verbatim in the compiled require() calls, breaking at runtime since
+# dist/ only ever has .js files.
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
@@ -38,5 +43,4 @@ COPY --from=build /app/src/generated ./src/generated
 EXPOSE 3000
 # Applies any pending migrations before every start — idempotent (no-op if none pending),
 # so this is safe on every container start/restart, not just first deploy.
-# CMD ["sh", "-c", "pnpm prisma:deploy && node dist/src/server.js"]
-CMD ["tail", "-f", "/dev/null"]
+CMD ["sh", "-c", "pnpm prisma:deploy && node dist/src/server.js"]
