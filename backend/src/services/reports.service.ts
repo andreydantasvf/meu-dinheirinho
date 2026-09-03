@@ -18,9 +18,14 @@ import {
 export const reportsService = {
   async dashboard(mes?: string) {
     const { inicio, fim } = mesParaIntervalo(mes ?? currentMonthUTC());
-    const transactions = await reportsRepository.findTransactionsNoIntervalo(inicio, fim);
+    const transactions = await reportsRepository.findTransactionsNoIntervalo(
+      inicio,
+      fim,
+    );
     const despesas = transactions.filter((t) => t.tipo === 'DESPESA');
-    const doCartao = transactions.filter((t) => t.account.tipo === 'CARTAO_CREDITO');
+    const doCartao = transactions.filter(
+      (t) => t.account.tipo === 'CARTAO_CREDITO',
+    );
 
     return {
       saldoMes: calcularSaldoMes(transactions),
@@ -42,19 +47,24 @@ export const reportsService = {
     }
 
     const hoje = new Date();
-    const inicioMesAtual = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1));
-    const inicioProximoMes = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 1));
-
-    const transactions = await reportsRepository.findTransactionsDoCartaoApartirDe(
-      accountId,
-      inicioMesAtual,
+    const inicioMesAtual = new Date(
+      Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1),
     );
+    const inicioProximoMes = new Date(
+      Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 1),
+    );
+
+    const transactions =
+      await reportsRepository.findTransactionsDoCartaoApartirDe(
+        accountId,
+        inicioMesAtual,
+      );
     const doMesAtual = transactions.filter((t) => t.data < inicioProximoMes);
     const futuras = transactions.filter((t) => t.data >= inicioProximoMes);
 
     const faturaAtual = somarValores(doMesAtual);
     const faturasFuturas = agruparFaturasFuturas(futuras);
-    const futurasParaLimite = futuras.filter(t => !t.fixedExpenseId);
+    const futurasParaLimite = futuras.filter((t) => !t.fixedExpenseId);
     const faturasFuturasParaLimite = agruparFaturasFuturas(futurasParaLimite);
 
     const limiteDisponivel = calcularLimiteDisponivel({

@@ -1,6 +1,9 @@
 import { accountRepository } from '../repositories/account.repository';
 import { AppError } from '../types/errors';
-import type { CreateAccountInput, UpdateAccountInput } from '../validators/account.schema';
+import type {
+  CreateAccountInput,
+  UpdateAccountInput,
+} from '../validators/account.schema';
 
 export const accountService = {
   list() {

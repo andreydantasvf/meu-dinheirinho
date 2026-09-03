@@ -1,5 +1,8 @@
 import { prisma } from '../lib/prisma';
-import type { CreateAccountInput, UpdateAccountInput } from '../validators/account.schema';
+import type {
+  CreateAccountInput,
+  UpdateAccountInput,
+} from '../validators/account.schema';
 
 export const accountRepository = {
   findAll() {

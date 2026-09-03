@@ -1,6 +1,9 @@
 import { transactionRepository } from '../repositories/transaction.repository';
 import { AppError } from '../types/errors';
-import type { CreateTransactionInput, UpdateTransactionInput } from '../validators/transaction.schema';
+import type {
+  CreateTransactionInput,
+  UpdateTransactionInput,
+} from '../validators/transaction.schema';
 
 export const transactionService = {
   list() {
@@ -20,7 +23,10 @@ export const transactionService = {
   async update(id: string, data: UpdateTransactionInput) {
     const transaction = await this.get(id);
     if (transaction.purchaseId) {
-      throw new AppError('Transação de compra parcelada não pode ser editada diretamente', 400);
+      throw new AppError(
+        'Transação de compra parcelada não pode ser editada diretamente',
+        400,
+      );
     }
     return transactionRepository.update(id, data);
   },
@@ -28,7 +34,10 @@ export const transactionService = {
   async remove(id: string) {
     const transaction = await this.get(id);
     if (transaction.purchaseId) {
-      throw new AppError('Transação de compra parcelada não pode ser editada diretamente', 400);
+      throw new AppError(
+        'Transação de compra parcelada não pode ser editada diretamente',
+        400,
+      );
     }
     return transactionRepository.remove(id);
   },

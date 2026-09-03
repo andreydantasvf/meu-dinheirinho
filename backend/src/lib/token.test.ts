@@ -15,7 +15,8 @@ describe('token', () => {
   it('verifyToken() rejects a token with a tampered signature', () => {
     const token = issueToken();
     const [payload, signature] = token.split('.');
-    const flippedSignature = signature.slice(0, -1) + (signature.at(-1) === 'a' ? 'b' : 'a');
+    const flippedSignature =
+      signature.slice(0, -1) + (signature.at(-1) === 'a' ? 'b' : 'a');
 
     expect(verifyToken(`${payload}.${flippedSignature}`)).toBe(false);
   });
@@ -23,7 +24,9 @@ describe('token', () => {
   it('verifyToken() rejects a tampered payload', () => {
     const token = issueToken();
     const [, signature] = token.split('.');
-    const tamperedPayload = Buffer.from(JSON.stringify({ exp: Date.now() + 999999 })).toString('base64url');
+    const tamperedPayload = Buffer.from(
+      JSON.stringify({ exp: Date.now() + 999999 }),
+    ).toString('base64url');
 
     expect(verifyToken(`${tamperedPayload}.${signature}`)).toBe(false);
   });

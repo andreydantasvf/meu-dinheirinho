@@ -31,14 +31,30 @@ describe('calcularSaldoMes', () => {
 describe('agruparGastoPorCategoria', () => {
   it('sums valor per categoryId', () => {
     const grupos = agruparGastoPorCategoria([
-      { valor: new Prisma.Decimal(50), categoryId: 'cat1', category: { nome: 'Mercado' } },
-      { valor: new Prisma.Decimal(30), categoryId: 'cat1', category: { nome: 'Mercado' } },
-      { valor: new Prisma.Decimal(20), categoryId: 'cat2', category: { nome: 'Transporte' } },
+      {
+        valor: new Prisma.Decimal(50),
+        categoryId: 'cat1',
+        category: { nome: 'Mercado' },
+      },
+      {
+        valor: new Prisma.Decimal(30),
+        categoryId: 'cat1',
+        category: { nome: 'Mercado' },
+      },
+      {
+        valor: new Prisma.Decimal(20),
+        categoryId: 'cat2',
+        category: { nome: 'Transporte' },
+      },
     ]);
 
     expect(grupos).toEqual([
       { categoriaId: 'cat1', nome: 'Mercado', total: new Prisma.Decimal(80) },
-      { categoriaId: 'cat2', nome: 'Transporte', total: new Prisma.Decimal(20) },
+      {
+        categoriaId: 'cat2',
+        nome: 'Transporte',
+        total: new Prisma.Decimal(20),
+      },
     ]);
   });
 });
@@ -46,11 +62,21 @@ describe('agruparGastoPorCategoria', () => {
 describe('agruparFaturaAtualPorCartao', () => {
   it('sums valor per accountId', () => {
     const grupos = agruparFaturaAtualPorCartao([
-      { valor: new Prisma.Decimal(100), accountId: 'acc1', account: { nome: 'Nubank' } },
-      { valor: new Prisma.Decimal(50), accountId: 'acc1', account: { nome: 'Nubank' } },
+      {
+        valor: new Prisma.Decimal(100),
+        accountId: 'acc1',
+        account: { nome: 'Nubank' },
+      },
+      {
+        valor: new Prisma.Decimal(50),
+        accountId: 'acc1',
+        account: { nome: 'Nubank' },
+      },
     ]);
 
-    expect(grupos).toEqual([{ accountId: 'acc1', nome: 'Nubank', total: new Prisma.Decimal(150) }]);
+    expect(grupos).toEqual([
+      { accountId: 'acc1', nome: 'Nubank', total: new Prisma.Decimal(150) },
+    ]);
   });
 });
 
@@ -80,14 +106,22 @@ describe('construirFiltroExtrato', () => {
   it('builds a date range for the given month', () => {
     const where = construirFiltroExtrato({ mes: '2026-03' });
 
-    expect((where.data as { gte: Date }).gte.toISOString()).toBe('2026-03-01T00:00:00.000Z');
-    expect((where.data as { lt: Date }).lt.toISOString()).toBe('2026-04-01T00:00:00.000Z');
+    expect((where.data as { gte: Date }).gte.toISOString()).toBe(
+      '2026-03-01T00:00:00.000Z',
+    );
+    expect((where.data as { lt: Date }).lt.toISOString()).toBe(
+      '2026-04-01T00:00:00.000Z',
+    );
     expect(where).not.toHaveProperty('categoryId');
     expect(where).not.toHaveProperty('accountId');
   });
 
   it('includes categoriaId and accountId filters when provided', () => {
-    const where = construirFiltroExtrato({ mes: '2026-03', categoriaId: 'cat1', accountId: 'acc1' });
+    const where = construirFiltroExtrato({
+      mes: '2026-03',
+      categoriaId: 'cat1',
+      accountId: 'acc1',
+    });
 
     expect(where.categoryId).toBe('cat1');
     expect(where.accountId).toBe('acc1');
@@ -111,7 +145,10 @@ describe('agruparFaturasFuturas', () => {
 
 describe('somarValores', () => {
   it('sums the valor field across all transactions', () => {
-    const total = somarValores([{ valor: new Prisma.Decimal(10) }, { valor: new Prisma.Decimal(15) }]);
+    const total = somarValores([
+      { valor: new Prisma.Decimal(10) },
+      { valor: new Prisma.Decimal(15) },
+    ]);
     expect(total.toString()).toBe('25');
   });
 });

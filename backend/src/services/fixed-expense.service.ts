@@ -1,7 +1,10 @@
 import { fixedExpenseRepository } from '../repositories/fixed-expense.repository';
 import { AppError } from '../types/errors';
 import type { CreateFixedExpenseInput } from '../validators/fixed-expense.schema';
-import { generateFixedExpenseTransactions, addMonthsClamped } from './fixed-expense-generator';
+import {
+  generateFixedExpenseTransactions,
+  addMonthsClamped,
+} from './fixed-expense-generator';
 
 const HORIZON_MONTHS = 12;
 
@@ -31,17 +34,25 @@ export const fixedExpenseService = {
     // Delete only future transactions and mark as canceled
     const today = new Date();
     // Normalize to UTC midnight
-    const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-    return fixedExpenseRepository.cancelAndRemoveFutureTransactions(id, todayUTC);
+    const todayUTC = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+    );
+    return fixedExpenseRepository.cancelAndRemoveFutureTransactions(
+      id,
+      todayUTC,
+    );
   },
 
   async ensureHorizon() {
     const activeExpenses = await fixedExpenseRepository.findActive();
     const today = new Date();
-    const targetDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + HORIZON_MONTHS, 1));
+    const targetDate = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + HORIZON_MONTHS, 1),
+    );
 
     for (const expense of activeExpenses) {
-      const latestResult = await fixedExpenseRepository.getLatestTransactionDate(expense.id);
+      const latestResult =
+        await fixedExpenseRepository.getLatestTransactionDate(expense.id);
       if (!latestResult) continue;
 
       const latestDate = latestResult.data;
@@ -59,15 +70,19 @@ export const fixedExpenseService = {
         }
 
         if (newTransactions.length > 0) {
-          await fixedExpenseRepository.addFutureTransactions(expense.id, {
-            accountId: expense.accountId,
-            categoryId: expense.categoryId,
-            valor: Number(expense.valor),
-            descricao: expense.descricao,
-            dataInicio: expense.dataInicio,
-          }, newTransactions);
+          await fixedExpenseRepository.addFutureTransactions(
+            expense.id,
+            {
+              accountId: expense.accountId,
+              categoryId: expense.categoryId,
+              valor: Number(expense.valor),
+              descricao: expense.descricao,
+              dataInicio: expense.dataInicio,
+            },
+            newTransactions,
+          );
         }
       }
     }
-  }
+  },
 };

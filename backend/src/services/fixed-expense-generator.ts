@@ -19,7 +19,9 @@ export function generateFixedExpenseTransactions(input: {
 
 export function addMonthsClamped(date: Date, months: number): Date {
   const day = date.getUTCDate();
-  const result = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
+  const result = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1),
+  );
   const lastDayOfTargetMonth = new Date(
     Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0),
   ).getUTCDate();

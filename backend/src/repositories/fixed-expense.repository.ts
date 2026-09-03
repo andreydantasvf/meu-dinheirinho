@@ -20,7 +20,10 @@ export const fixedExpenseRepository = {
     return prisma.fixedExpense.findUnique({ where: { id } });
   },
 
-  createWithTransactions(data: CreateFixedExpenseInput, transactions: GeneratedTransactionInput[]) {
+  createWithTransactions(
+    data: CreateFixedExpenseInput,
+    transactions: GeneratedTransactionInput[],
+  ) {
     return prisma.$transaction(async (tx) => {
       const fixedExpense = await tx.fixedExpense.create({ data });
       await tx.transaction.createMany({
@@ -54,7 +57,11 @@ export const fixedExpenseRepository = {
     });
   },
 
-  addFutureTransactions(id: string, data: CreateFixedExpenseInput, transactions: GeneratedTransactionInput[]) {
+  addFutureTransactions(
+    id: string,
+    data: CreateFixedExpenseInput,
+    transactions: GeneratedTransactionInput[],
+  ) {
     return prisma.transaction.createMany({
       data: transactions.map((t) => ({
         accountId: data.accountId,
@@ -74,5 +81,5 @@ export const fixedExpenseRepository = {
       orderBy: { data: 'desc' },
       select: { data: true },
     });
-  }
+  },
 };

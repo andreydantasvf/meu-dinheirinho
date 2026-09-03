@@ -9,11 +9,18 @@ export const webauthnRepository = {
     return prisma.webauthnCredential.findUnique({ where: { credentialId } });
   },
 
-  create(data: { credentialId: string; publicKey: Uint8Array<ArrayBuffer>; counter: bigint }) {
+  create(data: {
+    credentialId: string;
+    publicKey: Uint8Array<ArrayBuffer>;
+    counter: bigint;
+  }) {
     return prisma.webauthnCredential.create({ data });
   },
 
   updateCounter(credentialId: string, counter: bigint) {
-    return prisma.webauthnCredential.update({ where: { credentialId }, data: { counter } });
+    return prisma.webauthnCredential.update({
+      where: { credentialId },
+      data: { counter },
+    });
   },
 };

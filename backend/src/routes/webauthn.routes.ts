@@ -14,9 +14,25 @@ const webauthnLimiter = rateLimit({
 });
 
 // Registration only happens right after a password login, so it requires a valid token.
-webauthnRoutes.post('/register/options', requireAuth, webauthnController.registerOptions);
-webauthnRoutes.post('/register/verify', requireAuth, webauthnController.registerVerify);
+webauthnRoutes.post(
+  '/register/options',
+  requireAuth,
+  webauthnController.registerOptions,
+);
+webauthnRoutes.post(
+  '/register/verify',
+  requireAuth,
+  webauthnController.registerVerify,
+);
 
 // Login challenge/verify are public — this is how the user re-authenticates without a token.
-webauthnRoutes.post('/login/options', webauthnLimiter, webauthnController.loginOptions);
-webauthnRoutes.post('/login/verify', webauthnLimiter, webauthnController.loginVerify);
+webauthnRoutes.post(
+  '/login/options',
+  webauthnLimiter,
+  webauthnController.loginOptions,
+);
+webauthnRoutes.post(
+  '/login/verify',
+  webauthnLimiter,
+  webauthnController.loginVerify,
+);
