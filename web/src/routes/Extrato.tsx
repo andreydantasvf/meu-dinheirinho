@@ -28,6 +28,7 @@ import {
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useDeleteTransaction, useExtrato } from '@/hooks/use-transactions';
+import { useDeletePurchase } from '@/hooks/use-purchases';
 import {
   formatDateShort,
   currentMonth,
@@ -63,6 +64,7 @@ export default function Extrato() {
     accountId: accountId === ALL ? undefined : accountId,
   });
   const deleteTransaction = useDeleteTransaction();
+  const deletePurchase = useDeletePurchase();
 
   const categoryMap = useMemo(
     () => new Map(categories?.map((c) => [c.id, c])),
@@ -93,11 +95,19 @@ export default function Extrato() {
   async function confirmDelete() {
     if (!deleting) return;
     try {
-      await deleteTransaction.mutateAsync({
-        id: deleting.id,
-        accountId: deleting.accountId,
-      });
-      toast.success('Transação excluída com sucesso');
+      if (deleting.purchaseId) {
+        await deletePurchase.mutateAsync({
+          id: deleting.purchaseId,
+          accountId: deleting.accountId,
+        });
+        toast.success('Compra parcelada excluída com sucesso');
+      } else {
+        await deleteTransaction.mutateAsync({
+          id: deleting.id,
+          accountId: deleting.accountId,
+        });
+        toast.success('Transação excluída com sucesso');
+      }
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : 'Não foi possível excluir',
@@ -257,7 +267,7 @@ export default function Extrato() {
                   transaction={transaction}
                   category={categoryMap.get(transaction.categoryId)}
                   account={accountMap.get(transaction.accountId)}
-                  onEdit={() => navigate(`/transacoes/${transaction.id}`)}
+                  onEdit={() => navigate(transaction.purchaseId ? `/compras/${transaction.purchaseId}` : `/transacoes/${transaction.id}`)}
                   onDelete={() => setDeleting(transaction)}
                 />
               ))}

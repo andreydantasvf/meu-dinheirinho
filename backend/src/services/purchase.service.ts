@@ -23,6 +23,16 @@ export const purchaseService = {
     return purchaseRepository.createWithInstallments(data, installments);
   },
 
+  async update(id: string, data: CreatePurchaseInput) {
+    await this.get(id); // Ensure exists
+    const installments = generateInstallments({
+      valorTotal: data.valorTotal,
+      numeroParcelas: data.numeroParcelas,
+      dataCompra: data.dataCompra,
+    });
+    return purchaseRepository.updateWithInstallments(id, data, installments);
+  },
+
   async remove(id: string) {
     await this.get(id);
     return purchaseRepository.remove(id);

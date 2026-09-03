@@ -21,6 +21,12 @@ export const purchaseController = {
     res.status(201).json(purchase);
   },
 
+  async update(req: Request<IdParams>, res: Response) {
+    const data = createPurchaseSchema.parse(req.body);
+    const purchase = await purchaseService.update(req.params.id, data);
+    res.json(purchase);
+  },
+
   async remove(req: Request<IdParams>, res: Response) {
     await purchaseService.remove(req.params.id);
     res.status(204).send();

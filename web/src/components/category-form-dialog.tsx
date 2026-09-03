@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useController, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -19,13 +19,9 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { MoneyInput } from '@/components/money-input';
+  ControlledSelect,
+  ControlledMoneyInput,
+} from '@/components/controlled-fields';
 import { ApiError } from '@/lib/api';
 import { useCreateCategory, useUpdateCategory } from '@/hooks/use-categories';
 import type { Category } from '@/types/entities';
@@ -137,7 +133,14 @@ export function CategoryFormDialog({
 
             <Field>
               <FieldLabel htmlFor="tipo">Tipo</FieldLabel>
-              <SelectField control={control} name="tipo" />
+              <ControlledSelect
+                control={control}
+                name="tipo"
+                options={[
+                  { value: 'DESPESA', label: 'Despesa' },
+                  { value: 'RECEITA', label: 'Receita' },
+                ]}
+              />
             </Field>
 
             {isDespesa && (
@@ -145,7 +148,7 @@ export function CategoryFormDialog({
                 <FieldLabel htmlFor="metaMensal">
                   Meta mensal (opcional)
                 </FieldLabel>
-                <MetaMensalField control={control} />
+                <ControlledMoneyInput control={control} name="metaMensal" />
               </Field>
             )}
 
@@ -181,39 +184,4 @@ export function CategoryFormDialog({
   );
 }
 
-function SelectField({
-  control,
-  name,
-}: {
-  control: ReturnType<typeof useForm<CategoryFormValues>>['control'];
-  name: 'tipo';
-}) {
-  const { field } = useController({ control, name });
-  const labels = { DESPESA: 'Despesa', RECEITA: 'Receita' } as const;
-  return (
-    <Select value={field.value} onValueChange={field.onChange}>
-      <SelectTrigger id={name} className="w-full">
-        <SelectValue>{labels[field.value]}</SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="DESPESA">Despesa</SelectItem>
-        <SelectItem value="RECEITA">Receita</SelectItem>
-      </SelectContent>
-    </Select>
-  );
-}
 
-function MetaMensalField({
-  control,
-}: {
-  control: ReturnType<typeof useForm<CategoryFormValues>>['control'];
-}) {
-  const { field } = useController({ control, name: 'metaMensal' });
-  return (
-    <MoneyInput
-      id="metaMensal"
-      value={field.value ?? '0.00'}
-      onChange={field.onChange}
-    />
-  );
-}

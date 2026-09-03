@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom';
-import { useController, useForm } from 'react-hook-form';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { IconMinus, IconPlus } from '@tabler/icons-react';
@@ -14,19 +14,16 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { MoneyInput } from '@/components/money-input';
-import { DatePickerField } from '@/components/date-picker-field';
+  ControlledHeroMoneyInput,
+  ControlledDatePicker,
+  ControlledSelect,
+} from '@/components/controlled-fields';
 import { ApiError } from '@/lib/api';
 import { apiStringToCents, centsToApiString, formatMoney } from '@/lib/money';
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
-import { useCreatePurchase } from '@/hooks/use-purchases';
+import { useCreatePurchase, usePurchase, useUpdatePurchase } from '@/hooks/use-purchases';
+import type { Purchase } from '@/types/entities';
 
 const purchaseSchema = z.object({
   descricao: z.string().trim().min(1, 'Informe uma descrição'),
@@ -41,7 +38,7 @@ const purchaseSchema = z.object({
 
 type PurchaseFormValues = z.infer<typeof purchaseSchema>;
 
-const defaultValues: PurchaseFormValues = {
+const emptyValues: PurchaseFormValues = {
   descricao: '',
   valorTotal: '0.00',
   numeroParcelas: 2,
@@ -50,11 +47,26 @@ const defaultValues: PurchaseFormValues = {
   dataCompra: new Date().toISOString(),
 };
 
+function toFormValues(purchase: Purchase): PurchaseFormValues {
+  return {
+    descricao: purchase.descricao,
+    valorTotal: purchase.valorTotal,
+    numeroParcelas: purchase.numeroParcelas,
+    categoryId: purchase.categoryId,
+    accountId: purchase.accountId,
+    dataCompra: purchase.dataCompra,
+  };
+}
+
 export default function NovaCompraParcelada() {
+  const { id } = useParams();
+  const isEditing = Boolean(id);
   const navigate = useNavigate();
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
+  const { data: purchase, isLoading: isLoadingPurchase } = usePurchase(id);
   const createPurchase = useCreatePurchase();
+  const updatePurchase = useUpdatePurchase();
 
   const {
     register,
@@ -65,20 +77,26 @@ export default function NovaCompraParcelada() {
     formState: { errors, isSubmitting },
   } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
-    defaultValues,
+    values: purchase ? toFormValues(purchase) : emptyValues,
   });
 
   const valorTotal = watch('valorTotal');
   const numeroParcelas = watch('numeroParcelas');
   const despesaCategories =
     categories?.filter((category) => category.tipo === 'DESPESA') ?? [];
+  const creditCards = accounts?.filter((account) => account.tipo === 'CARTAO_CREDITO') ?? [];
 
   const preview = buildInstallmentPreview(valorTotal, numeroParcelas);
 
   async function onSubmit(values: PurchaseFormValues) {
     try {
-      await createPurchase.mutateAsync(values);
-      toast.success('Compra parcelada criada com sucesso');
+      if (isEditing && id) {
+        await updatePurchase.mutateAsync({ id, ...values });
+        toast.success('Compra parcelada atualizada com sucesso');
+      } else {
+        await createPurchase.mutateAsync(values);
+        toast.success('Compra parcelada criada com sucesso');
+      }
       navigate(-1);
     } catch (error) {
       toast.error(
@@ -87,15 +105,23 @@ export default function NovaCompraParcelada() {
     }
   }
 
+  if (isEditing && isLoadingPurchase) {
+    return (
+      <ModalRoute title="Compra parcelada">
+        <p className="py-8 text-center text-sm font-medium text-muted-foreground">Carregando...</p>
+      </ModalRoute>
+    );
+  }
+
   return (
-    <ModalRoute title="Compra parcelada">
+    <ModalRoute title={isEditing ? "Editar compra parcelada" : "Nova compra parcelada"}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
         {/* Hero Money Input */}
         <div className="flex flex-col items-center gap-1.5 py-3">
           <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
             Valor Total
           </span>
-          <MoneyField control={control} />
+          <ControlledHeroMoneyInput control={control} name="valorTotal" />
           <FieldError errors={[errors.valorTotal]} />
         </div>
 
@@ -167,11 +193,11 @@ export default function NovaCompraParcelada() {
             <FieldLabel htmlFor="accountId" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
               Cartão de crédito
             </FieldLabel>
-            <SelectField
+            <ControlledSelect
               control={control}
               name="accountId"
               placeholder="Selecione o cartão"
-              options={(accounts ?? []).map((account) => ({
+              options={creditCards.map((account) => ({
                 value: account.id,
                 label: account.nome,
               }))}
@@ -184,7 +210,7 @@ export default function NovaCompraParcelada() {
             <FieldLabel htmlFor="categoryId" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
               Categoria
             </FieldLabel>
-            <SelectField
+            <ControlledSelect
               control={control}
               name="categoryId"
               placeholder="Selecione uma categoria"
@@ -201,7 +227,7 @@ export default function NovaCompraParcelada() {
             <FieldLabel htmlFor="dataCompra" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
               Data da 1ª parcela
             </FieldLabel>
-            <DateField control={control} />
+            <ControlledDatePicker control={control} name="dataCompra" />
             <FieldError errors={[errors.dataCompra]} />
           </Field>
         </FieldGroup>
@@ -212,8 +238,8 @@ export default function NovaCompraParcelada() {
           className="mt-4 h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
         >
           {isSubmitting
-            ? 'Criando parcelas...'
-            : `Criar ${numeroParcelas} lançamentos`}
+            ? 'Salvando parcelas...'
+            : isEditing ? `Atualizar ${numeroParcelas} lançamentos` : `Criar ${numeroParcelas} lançamentos`}
         </Button>
       </form>
     </ModalRoute>
@@ -238,69 +264,4 @@ function buildInstallmentPreview(valorTotal: string, numeroParcelas: number) {
     lastDisplay: centsToApiString(lastCents),
     lastDiffers: lastCents !== baseCents,
   };
-}
-
-function MoneyField({
-  control,
-}: {
-  control: ReturnType<typeof useForm<PurchaseFormValues>>['control'];
-}) {
-  const { field } = useController({ control, name: 'valorTotal' });
-  return (
-    <div className="flex items-baseline justify-center gap-1">
-      <span className="text-2xl font-bold text-muted-foreground">R$</span>
-      <MoneyInput
-        id="valorTotal"
-        value={field.value}
-        onChange={field.onChange}
-        className="h-auto border-none bg-transparent p-0 text-primary text-4xl font-extrabold tracking-tight tabular-nums focus-visible:ring-0 w-auto text-center"
-      />
-    </div>
-  );
-}
-
-function DateField({
-  control,
-}: {
-  control: ReturnType<typeof useForm<PurchaseFormValues>>['control'];
-}) {
-  const { field } = useController({ control, name: 'dataCompra' });
-  return (
-    <DatePickerField
-      id="dataCompra"
-      value={field.value}
-      onChange={field.onChange}
-    />
-  );
-}
-
-function SelectField({
-  control,
-  name,
-  placeholder,
-  options,
-}: {
-  control: ReturnType<typeof useForm<PurchaseFormValues>>['control'];
-  name: 'categoryId' | 'accountId';
-  placeholder: string;
-  options: Array<{ value: string; label: string }>;
-}) {
-  const { field } = useController({ control, name });
-  const selectedLabel = options.find(
-    (option) => option.value === field.value,
-  )?.label;
-  return (
-    <Select value={field.value} onValueChange={field.onChange}>
-      <SelectTrigger id={name} className="h-12 w-full rounded-xl border-border bg-card text-sm text-foreground">
-        <SelectValue placeholder={placeholder}>{selectedLabel}</SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
 }

@@ -25,6 +25,7 @@ export default function App() {
           <Route path="transacoes/nova" element={<NovaTransacao />} />
           <Route path="transacoes/:id" element={<NovaTransacao />} />
           <Route path="compras/nova" element={<NovaCompraParcelada />} />
+          <Route path="compras/:id" element={<NovaCompraParcelada />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

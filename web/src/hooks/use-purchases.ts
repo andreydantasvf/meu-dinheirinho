@@ -31,11 +31,29 @@ export function usePurchases() {
   });
 }
 
+export function usePurchase(id: string | undefined) {
+  return useQuery({
+    queryKey: ['purchases', id],
+    queryFn: () => apiFetch<Purchase>(`/purchases/${id}`),
+    enabled: Boolean(id),
+  });
+}
+
 export function useCreatePurchase() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: PurchaseInput) =>
       apiFetch<Purchase>('/purchases', { method: 'POST', body: input }),
+    onSuccess: (_data, variables) =>
+      invalidateAfterPurchaseChange(queryClient, variables.accountId),
+  });
+}
+
+export function useUpdatePurchase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...input }: PurchaseInput & { id: string }) =>
+      apiFetch<Purchase>(`/purchases/${id}`, { method: 'PUT', body: input }),
     onSuccess: (_data, variables) =>
       invalidateAfterPurchaseChange(queryClient, variables.accountId),
   });
