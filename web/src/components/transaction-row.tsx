@@ -25,9 +25,8 @@ export function TransactionRow({
     <div className="flex items-center gap-3 border-b border-border p-3.5 last:border-b-0">
       <button
         type="button"
-        disabled={isLocked}
         onClick={onEdit}
-        className="flex flex-1 items-center gap-3 text-left min-w-0 disabled:cursor-default"
+        className="flex flex-1 items-center gap-3 text-left min-w-0"
       >
         <CategoryIcon
           name={category?.nome}
@@ -64,17 +63,15 @@ export function TransactionRow({
         )}
       </div>
 
-      {!isLocked && (
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Excluir transação"
-          onClick={onDelete}
-          className="size-8 rounded-xl text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
-        >
-          <IconTrash size={16} />
-        </Button>
-      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Excluir transação"
+        onClick={onDelete}
+        className="size-8 rounded-xl text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
+      >
+        <IconTrash size={16} />
+      </Button>
     </div>
   );
 }

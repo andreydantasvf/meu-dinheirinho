@@ -17,6 +17,7 @@ import { TransactionRow } from '@/components/transaction-row';
 import { useCategories } from '@/hooks/use-categories';
 import { useFatura } from '@/hooks/use-fatura';
 import { useDeleteTransaction, useExtrato } from '@/hooks/use-transactions';
+import { useDeletePurchase } from '@/hooks/use-purchases';
 import { formatMoney } from '@/lib/money';
 import { currentMonth, formatMonthLabel } from '@/lib/date';
 import { ApiError } from '@/lib/api';
@@ -32,6 +33,7 @@ export function CardInvoiceDetails({ account }: { account: Account }) {
     isError,
   } = useExtrato({ accountId: account.id, mes: currentMonth() });
   const deleteTransaction = useDeleteTransaction();
+  const deletePurchase = useDeletePurchase();
   const [deleting, setDeleting] = useState<Transaction | undefined>(undefined);
 
   const categoryMap = useMemo(
@@ -46,11 +48,19 @@ export function CardInvoiceDetails({ account }: { account: Account }) {
   async function confirmDelete() {
     if (!deleting) return;
     try {
-      await deleteTransaction.mutateAsync({
-        id: deleting.id,
-        accountId: deleting.accountId,
-      });
-      toast.success('Transação excluída com sucesso');
+      if (deleting.purchaseId) {
+        await deletePurchase.mutateAsync({
+          id: deleting.purchaseId,
+          accountId: deleting.accountId,
+        });
+        toast.success('Compra parcelada excluída com sucesso');
+      } else {
+        await deleteTransaction.mutateAsync({
+          id: deleting.id,
+          accountId: deleting.accountId,
+        });
+        toast.success('Transação excluída com sucesso');
+      }
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : 'Não foi possível excluir',
@@ -118,7 +128,7 @@ export function CardInvoiceDetails({ account }: { account: Account }) {
                 transaction={transaction}
                 category={categoryMap.get(transaction.categoryId)}
                 account={account}
-                onEdit={() => navigate(`/transacoes/${transaction.id}`)}
+                onEdit={() => navigate(transaction.purchaseId ? `/compras/${transaction.purchaseId}` : `/transacoes/${transaction.id}`)}
                 onDelete={() => setDeleting(transaction)}
               />
             ))}
