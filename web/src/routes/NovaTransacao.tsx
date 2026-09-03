@@ -203,13 +203,13 @@ function TransactionForm({
             {/* Account Selector */}
             <Field className="flex flex-col gap-2">
               <FieldLabel className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-                Conta / Cartão
+                Conta
               </FieldLabel>
               <SelectField
                 control={control}
                 name="accountId"
                 placeholder="Selecione a conta de origem"
-                options={(accounts ?? []).map((account) => ({
+                options={(accounts ?? []).filter(a => a.tipo !== 'CARTAO_CREDITO').map((account) => ({
                   value: account.id,
                   label: account.nome,
                 }))}
@@ -298,7 +298,7 @@ function MoneyField({
 }) {
   const { field } = useController({ control, name: 'valor' });
   return (
-    <div className="flex items-baseline justify-center gap-1">
+    <div className="flex items-baseline justify-center gap-1 max-w-[90%]">
       <span className="text-2xl font-bold text-muted-foreground">R$</span>
       <MoneyInput
         id="valor"

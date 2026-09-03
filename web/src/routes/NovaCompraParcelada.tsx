@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useController, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,7 +26,8 @@ import { ApiError } from '@/lib/api';
 import { apiStringToCents, centsToApiString, formatMoney } from '@/lib/money';
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
-import { useCreatePurchase } from '@/hooks/use-purchases';
+import { useCreatePurchase, usePurchase, useUpdatePurchase } from '@/hooks/use-purchases';
+import type { Purchase } from '@/types/entities';
 
 const purchaseSchema = z.object({
   descricao: z.string().trim().min(1, 'Informe uma descrição'),
@@ -41,7 +42,7 @@ const purchaseSchema = z.object({
 
 type PurchaseFormValues = z.infer<typeof purchaseSchema>;
 
-const defaultValues: PurchaseFormValues = {
+const emptyValues: PurchaseFormValues = {
   descricao: '',
   valorTotal: '0.00',
   numeroParcelas: 2,
@@ -50,11 +51,26 @@ const defaultValues: PurchaseFormValues = {
   dataCompra: new Date().toISOString(),
 };
 
+function toFormValues(purchase: Purchase): PurchaseFormValues {
+  return {
+    descricao: purchase.descricao,
+    valorTotal: purchase.valorTotal,
+    numeroParcelas: purchase.numeroParcelas,
+    categoryId: purchase.categoryId,
+    accountId: purchase.accountId,
+    dataCompra: purchase.dataCompra,
+  };
+}
+
 export default function NovaCompraParcelada() {
+  const { id } = useParams();
+  const isEditing = Boolean(id);
   const navigate = useNavigate();
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
+  const { data: purchase, isLoading: isLoadingPurchase } = usePurchase(id);
   const createPurchase = useCreatePurchase();
+  const updatePurchase = useUpdatePurchase();
 
   const {
     register,
@@ -65,20 +81,26 @@ export default function NovaCompraParcelada() {
     formState: { errors, isSubmitting },
   } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
-    defaultValues,
+    values: purchase ? toFormValues(purchase) : emptyValues,
   });
 
   const valorTotal = watch('valorTotal');
   const numeroParcelas = watch('numeroParcelas');
   const despesaCategories =
     categories?.filter((category) => category.tipo === 'DESPESA') ?? [];
+  const creditCards = accounts?.filter((account) => account.tipo === 'CARTAO_CREDITO') ?? [];
 
   const preview = buildInstallmentPreview(valorTotal, numeroParcelas);
 
   async function onSubmit(values: PurchaseFormValues) {
     try {
-      await createPurchase.mutateAsync(values);
-      toast.success('Compra parcelada criada com sucesso');
+      if (isEditing && id) {
+        await updatePurchase.mutateAsync({ id, ...values });
+        toast.success('Compra parcelada atualizada com sucesso');
+      } else {
+        await createPurchase.mutateAsync(values);
+        toast.success('Compra parcelada criada com sucesso');
+      }
       navigate(-1);
     } catch (error) {
       toast.error(
@@ -87,8 +109,16 @@ export default function NovaCompraParcelada() {
     }
   }
 
+  if (isEditing && isLoadingPurchase) {
+    return (
+      <ModalRoute title="Compra parcelada">
+        <p className="py-8 text-center text-sm font-medium text-muted-foreground">Carregando...</p>
+      </ModalRoute>
+    );
+  }
+
   return (
-    <ModalRoute title="Compra parcelada">
+    <ModalRoute title={isEditing ? "Editar compra parcelada" : "Nova compra parcelada"}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
         {/* Hero Money Input */}
         <div className="flex flex-col items-center gap-1.5 py-3">
@@ -171,7 +201,7 @@ export default function NovaCompraParcelada() {
               control={control}
               name="accountId"
               placeholder="Selecione o cartão"
-              options={(accounts ?? []).map((account) => ({
+              options={creditCards.map((account) => ({
                 value: account.id,
                 label: account.nome,
               }))}
@@ -212,8 +242,8 @@ export default function NovaCompraParcelada() {
           className="mt-4 h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
         >
           {isSubmitting
-            ? 'Criando parcelas...'
-            : `Criar ${numeroParcelas} lançamentos`}
+            ? 'Salvando parcelas...'
+            : isEditing ? `Atualizar ${numeroParcelas} lançamentos` : `Criar ${numeroParcelas} lançamentos`}
         </Button>
       </form>
     </ModalRoute>
@@ -247,7 +277,7 @@ function MoneyField({
 }) {
   const { field } = useController({ control, name: 'valorTotal' });
   return (
-    <div className="flex items-baseline justify-center gap-1">
+    <div className="flex items-baseline justify-center gap-1 max-w-[90%]">
       <span className="text-2xl font-bold text-muted-foreground">R$</span>
       <MoneyInput
         id="valorTotal"
