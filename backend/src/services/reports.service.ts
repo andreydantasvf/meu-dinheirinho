@@ -54,10 +54,13 @@ export const reportsService = {
 
     const faturaAtual = somarValores(doMesAtual);
     const faturasFuturas = agruparFaturasFuturas(futuras);
+    const futurasParaLimite = futuras.filter(t => !t.fixedExpenseId);
+    const faturasFuturasParaLimite = agruparFaturasFuturas(futurasParaLimite);
+
     const limiteDisponivel = calcularLimiteDisponivel({
       limite: account.limite ?? new Prisma.Decimal(0),
       faturaAtual,
-      faturasFuturas,
+      faturasFuturas: faturasFuturasParaLimite,
     });
 
     return { faturaAtual, faturasFuturas, limiteDisponivel };
