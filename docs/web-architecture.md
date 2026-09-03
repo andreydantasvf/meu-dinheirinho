@@ -40,6 +40,15 @@ Todas as 6 telas do MVP (`Home`, `Extrato`, `Cartoes`, `Categorias`, `NovaTransa
 
 `Home` chama `GET /categories` (rota **protegida**), não `/health` (que é pública) — escolha deliberada: provar que o token de auth está sendo enviado e aceito de ponta a ponta é mais valioso do que só provar que a API está no ar.
 
+## Padrões de Componentes e Rotas
+
+Para manter a organização do frontend (evitar duplicações silenciosas e arquivos enormes), seguimos regras estritas sobre como componentes devem ser declarados e organizados:
+
+1. **Rotas não devem conter sub-componentes**: Nenhum componente auxiliar (ex: modais, formulários, botões específicos) deve ser declarado dentro de arquivos em `src/routes/*` ou mesmo nos componentes principais de `src/components/*` no formato de função no final do arquivo. Eles devem ser extraídos ou removidos.
+2. **1 componente por arquivo (para lógicas e UIs complexas)**: Componentes com lógica de negócio ou interface complexa (como `TransactionForm`, `CardFace`, seletores visuais) ganham seu próprio arquivo isolado (`src/components/nome-do-componente.tsx`).
+3. **Exceção 1 — Utilitários e Wrappers de Formulário**: Componentes muito pequenos que apenas conectam o `react-hook-form` a inputs comuns (`ControlledMoneyInput`, `ControlledDatePicker`, `ControlledSelect`) não precisam de dezenas de arquivos minúsculos de 10 linhas. Eles são agrupados e exportados num único arquivo `src/components/controlled-fields.tsx`.
+4. **Exceção 2 — shadcn/ui**: Os arquivos gerados na pasta `src/components/ui/*` inerentemente exportam múltiplos pequenos pedaços estruturais de uma UI (ex: `Dialog`, `DialogTrigger`, `DialogContent`). Nunca alteramos esse padrão gerado.
+
 ## Design system e camada de dados
 
 Fundação técnica construída sobre o esqueleto acima (roteamento, auth, Tailwind, PWA já existentes): shadcn/ui, dark/light mode, TanStack Query, formulários. Pontos não óbvios:

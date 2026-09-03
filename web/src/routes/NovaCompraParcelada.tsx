@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { useController, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { IconMinus, IconPlus } from '@tabler/icons-react';
@@ -14,14 +14,10 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { MoneyInput } from '@/components/money-input';
-import { DatePickerField } from '@/components/date-picker-field';
+  ControlledHeroMoneyInput,
+  ControlledDatePicker,
+  ControlledSelect,
+} from '@/components/controlled-fields';
 import { ApiError } from '@/lib/api';
 import { apiStringToCents, centsToApiString, formatMoney } from '@/lib/money';
 import { useCategories } from '@/hooks/use-categories';
@@ -125,7 +121,7 @@ export default function NovaCompraParcelada() {
           <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
             Valor Total
           </span>
-          <MoneyField control={control} />
+          <ControlledHeroMoneyInput control={control} name="valorTotal" />
           <FieldError errors={[errors.valorTotal]} />
         </div>
 
@@ -197,7 +193,7 @@ export default function NovaCompraParcelada() {
             <FieldLabel htmlFor="accountId" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
               Cartão de crédito
             </FieldLabel>
-            <SelectField
+            <ControlledSelect
               control={control}
               name="accountId"
               placeholder="Selecione o cartão"
@@ -214,7 +210,7 @@ export default function NovaCompraParcelada() {
             <FieldLabel htmlFor="categoryId" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
               Categoria
             </FieldLabel>
-            <SelectField
+            <ControlledSelect
               control={control}
               name="categoryId"
               placeholder="Selecione uma categoria"
@@ -231,7 +227,7 @@ export default function NovaCompraParcelada() {
             <FieldLabel htmlFor="dataCompra" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
               Data da 1ª parcela
             </FieldLabel>
-            <DateField control={control} />
+            <ControlledDatePicker control={control} name="dataCompra" />
             <FieldError errors={[errors.dataCompra]} />
           </Field>
         </FieldGroup>
@@ -268,69 +264,4 @@ function buildInstallmentPreview(valorTotal: string, numeroParcelas: number) {
     lastDisplay: centsToApiString(lastCents),
     lastDiffers: lastCents !== baseCents,
   };
-}
-
-function MoneyField({
-  control,
-}: {
-  control: ReturnType<typeof useForm<PurchaseFormValues>>['control'];
-}) {
-  const { field } = useController({ control, name: 'valorTotal' });
-  return (
-    <div className="flex items-baseline justify-center gap-1 max-w-[90%]">
-      <span className="text-2xl font-bold text-muted-foreground">R$</span>
-      <MoneyInput
-        id="valorTotal"
-        value={field.value}
-        onChange={field.onChange}
-        className="h-auto border-none bg-transparent p-0 text-primary text-4xl font-extrabold tracking-tight tabular-nums focus-visible:ring-0 w-auto text-center"
-      />
-    </div>
-  );
-}
-
-function DateField({
-  control,
-}: {
-  control: ReturnType<typeof useForm<PurchaseFormValues>>['control'];
-}) {
-  const { field } = useController({ control, name: 'dataCompra' });
-  return (
-    <DatePickerField
-      id="dataCompra"
-      value={field.value}
-      onChange={field.onChange}
-    />
-  );
-}
-
-function SelectField({
-  control,
-  name,
-  placeholder,
-  options,
-}: {
-  control: ReturnType<typeof useForm<PurchaseFormValues>>['control'];
-  name: 'categoryId' | 'accountId';
-  placeholder: string;
-  options: Array<{ value: string; label: string }>;
-}) {
-  const { field } = useController({ control, name });
-  const selectedLabel = options.find(
-    (option) => option.value === field.value,
-  )?.label;
-  return (
-    <Select value={field.value} onValueChange={field.onChange}>
-      <SelectTrigger id={name} className="h-12 w-full rounded-xl border-border bg-card text-sm text-foreground">
-        <SelectValue placeholder={placeholder}>{selectedLabel}</SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
 }

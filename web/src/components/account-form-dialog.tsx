@@ -1,9 +1,8 @@
 import { useEffect } from 'react';
-import { useController, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { IconCheck } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,23 +19,18 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { MoneyInput } from '@/components/money-input';
+  ControlledSelect,
+  ControlledMoneyInput,
+} from '@/components/controlled-fields';
+import { CardColorPicker } from '@/components/card-color-picker';
 import { ApiError } from '@/lib/api';
 import { useCreateAccount, useUpdateAccount } from '@/hooks/use-accounts';
 import { accountTypeLabels } from '@/types/entities';
 import type { Account, AccountType } from '@/types/entities';
 import {
-  BANK_COLOR_PRESETS,
   getCardColorId,
   setCardColorId,
 } from '@/lib/card-colors';
-import { cn } from '@/lib/utils';
 
 const dayField = z.number().int().min(1, 'Entre 1 e 31').max(31, 'Entre 1 e 31').optional();
 
@@ -161,19 +155,26 @@ export function AccountFormDialog({
 
             <Field>
               <FieldLabel htmlFor="tipo">Tipo</FieldLabel>
-              <TipoField control={control} />
+              <ControlledSelect
+                control={control}
+                name="tipo"
+                options={(Object.keys(accountTypeLabels) as AccountType[]).map((value) => ({
+                  value,
+                  label: accountTypeLabels[value],
+                }))}
+              />
             </Field>
 
             {isCard && (
               <>
                 <Field>
                   <FieldLabel>Cor / Visual do Cartão</FieldLabel>
-                  <CorPickerField control={control} />
+                  <CardColorPicker control={control} name="cor" />
                 </Field>
 
                 <Field>
                   <FieldLabel htmlFor="limite">Limite</FieldLabel>
-                  <LimiteField control={control} />
+                  <ControlledMoneyInput control={control} name="limite" />
                   <FieldError errors={[errors.limite]} />
                 </Field>
 
@@ -219,71 +220,4 @@ export function AccountFormDialog({
   );
 }
 
-function TipoField({
-  control,
-}: {
-  control: ReturnType<typeof useForm<AccountFormValues>>['control'];
-}) {
-  const { field } = useController({ control, name: 'tipo' });
-  return (
-    <Select value={field.value} onValueChange={field.onChange}>
-      <SelectTrigger id="tipo" className="w-full">
-        <SelectValue>{accountTypeLabels[field.value]}</SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {(Object.keys(accountTypeLabels) as AccountType[]).map((value) => (
-          <SelectItem key={value} value={value}>
-            {accountTypeLabels[value]}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
 
-function CorPickerField({
-  control,
-}: {
-  control: ReturnType<typeof useForm<AccountFormValues>>['control'];
-}) {
-  const { field } = useController({ control, name: 'cor' });
-  const selectedColorId = field.value || 'roxo';
-
-  return (
-    <div className="flex flex-wrap gap-2 pt-1">
-      {BANK_COLOR_PRESETS.map((preset) => {
-        const isSelected = selectedColorId === preset.id;
-        return (
-          <button
-            key={preset.id}
-            type="button"
-            onClick={() => field.onChange(preset.id)}
-            title={`${preset.name} (${preset.bankLabel})`}
-            className={cn(
-              'relative flex size-8 items-center justify-center rounded-full transition-transform active:scale-95',
-              preset.swatchBg,
-              isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110' : 'opacity-85 hover:opacity-100 hover:scale-105',
-            )}
-          >
-            {isSelected && <IconCheck size={16} className="text-white drop-shadow" stroke={3} />}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function LimiteField({
-  control,
-}: {
-  control: ReturnType<typeof useForm<AccountFormValues>>['control'];
-}) {
-  const { field } = useController({ control, name: 'limite' });
-  return (
-    <MoneyInput
-      id="limite"
-      value={field.value ?? '0.00'}
-      onChange={field.onChange}
-    />
-  );
-}
