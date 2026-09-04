@@ -31,11 +31,14 @@ export default function Login() {
     setError(null);
     setLoading(true);
     try {
-      const { token, name } = await apiFetch<{ token: string; name: string }>('/auth/login', {
-        method: 'POST',
-        body: { password },
-        skipAuth: true,
-      });
+      const { token, name } = await apiFetch<{ token: string; name: string }>(
+        '/auth/login',
+        {
+          method: 'POST',
+          body: { password },
+          skipAuth: true,
+        },
+      );
       setToken(token);
       setUserName(name);
 
@@ -88,7 +91,8 @@ export default function Login() {
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">Ativar Biometria?</h1>
           <p className="text-sm text-muted-foreground max-w-xs">
-            Ative o Face ID / Touch ID para acessar seu aplicativo instantaneamente nas próximas vezes.
+            Ative o Face ID / Touch ID para acessar seu aplicativo
+            instantaneamente nas próximas vezes.
           </p>
         </div>
         <div className="flex w-full max-w-xs flex-col gap-3">
@@ -120,7 +124,9 @@ export default function Login() {
           className="size-20 object-contain drop-shadow-[0_0_24px_rgba(0,200,255,0.35)]"
         />
         <div className="text-center">
-          <h1 className="text-3xl font-extrabold tracking-tight">Meu Dinheirinho</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            Meu Dinheirinho
+          </h1>
           <p className="text-xs font-semibold tracking-[0.25em] text-primary/80 uppercase mt-1">
             Controle Pessoal
           </p>
@@ -128,9 +134,15 @@ export default function Login() {
       </div>
 
       {/* Password Form */}
-      <form onSubmit={handlePasswordLogin} className="flex w-full max-w-xs flex-col gap-4">
+      <form
+        onSubmit={handlePasswordLogin}
+        className="flex w-full max-w-xs flex-col gap-4"
+      >
         <div className="flex flex-col gap-2">
-          <label htmlFor="senha" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+          <label
+            htmlFor="senha"
+            className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
+          >
             Senha
           </label>
           <div className="relative">
@@ -154,7 +166,11 @@ export default function Login() {
           </div>
         </div>
 
-        {error && <p className="text-center text-sm font-medium text-destructive">{error}</p>}
+        {error && (
+          <p className="text-center text-sm font-medium text-destructive">
+            {error}
+          </p>
+        )}
 
         <Button
           type="submit"
@@ -170,7 +186,9 @@ export default function Login() {
         <div className="flex w-full max-w-xs flex-col items-center gap-4">
           <div className="flex w-full items-center gap-3">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-xs font-medium text-muted-foreground">ou</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              ou
+            </span>
             <div className="h-px flex-1 bg-border" />
           </div>
 

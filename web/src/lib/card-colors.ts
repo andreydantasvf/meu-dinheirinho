@@ -138,7 +138,10 @@ export function getCardColorId(accountId: string, accountName: string): string {
   return BANK_COLOR_PRESETS[Math.abs(hash) % BANK_COLOR_PRESETS.length].id;
 }
 
-export function getCardTheme(accountId: string, accountName: string): BankColorPreset {
+export function getCardTheme(
+  accountId: string,
+  accountName: string,
+): BankColorPreset {
   const colorId = getCardColorId(accountId, accountName);
   return (
     BANK_COLOR_PRESETS.find((p) => p.id === colorId) ?? BANK_COLOR_PRESETS[0]

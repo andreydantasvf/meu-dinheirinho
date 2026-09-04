@@ -23,7 +23,10 @@ export async function registerPasskey(): Promise<void> {
   });
 }
 
-export async function loginWithPasskey(): Promise<{ token: string; name: string }> {
+export async function loginWithPasskey(): Promise<{
+  token: string;
+  name: string;
+}> {
   const options = await apiFetch<PublicKeyCredentialRequestOptionsJSON>(
     '/auth/webauthn/login/options',
     {

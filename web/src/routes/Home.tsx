@@ -13,6 +13,7 @@ import { useExtrato } from '@/hooks/use-transactions';
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
 import { CategoryIcon } from '@/components/category-icon';
+import { CategoryChart } from '@/components/category-chart';
 import { formatMoney } from '@/lib/money';
 import { currentMonth, formatMonthLabel, shiftMonth } from '@/lib/date';
 import { cn } from '@/lib/utils';
@@ -21,7 +22,11 @@ import { getUserName } from '@/lib/auth';
 export default function Home() {
   const userName = getUserName();
   const [mes, setMes] = useState(currentMonth());
-  const { data: dashboard, isLoading: isDashLoading, isError: isDashError } = useDashboard(mes);
+  const {
+    data: dashboard,
+    isLoading: isDashLoading,
+    isError: isDashError,
+  } = useDashboard(mes);
   const { data: transactions } = useExtrato({ mes });
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
@@ -36,7 +41,7 @@ export default function Home() {
   );
 
   const saldoMes = dashboard ? Number(dashboard.saldoMes) : 0;
-  
+
   const gastoPorCategoria = useMemo(() => {
     return dashboard?.gastoPorCategoria ?? [];
   }, [dashboard?.gastoPorCategoria]);
@@ -66,13 +71,15 @@ export default function Home() {
   }, [transactions]);
 
   return (
-    <div className="flex flex-col gap-5 p-4">
+    <div className="flex flex-col gap-5 p-4 md:grid md:grid-cols-2 lg:grid-cols-3">
       {userName && (
-        <p className="text-sm text-muted-foreground">Olá, {userName}</p>
+        <div className="col-span-full mb-[-12px]">
+          <p className="text-sm text-muted-foreground">Olá, {userName}</p>
+        </div>
       )}
 
       {/* Month Navigator */}
-      <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-3 py-2">
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-3 py-2 col-span-full">
         <Button
           variant="ghost"
           size="icon"
@@ -95,7 +102,7 @@ export default function Home() {
       </div>
 
       {isDashLoading && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 col-span-full">
           <Skeleton className="h-44 w-full rounded-3xl bg-foreground/5" />
           <Skeleton className="h-48 w-full rounded-3xl bg-foreground/5" />
           <Skeleton className="h-44 w-full rounded-3xl bg-foreground/5" />
@@ -103,7 +110,7 @@ export default function Home() {
       )}
 
       {isDashError && (
-        <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-center text-sm text-destructive">
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-center text-sm text-destructive col-span-full">
           Não foi possível carregar o painel financeiro.
         </div>
       )}
@@ -111,38 +118,46 @@ export default function Home() {
       {dashboard && (
         <>
           {/* Hero Card - Saldo do Mês */}
-          <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card to-popover p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
-                Saldo do Mês
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success">
-                <IconArrowUpRight size={14} /> Ativo
-              </span>
-            </div>
+          <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card to-popover p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4)] md:col-span-2 lg:col-span-3 lg:flex lg:items-center lg:justify-between lg:gap-8">
+            <div className="flex-1">
+              <div className="flex items-center justify-between lg:justify-start lg:gap-4">
+                <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+                  Saldo do Mês
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success">
+                  <IconArrowUpRight size={14} /> Ativo
+                </span>
+              </div>
 
-            <div className="my-3 flex items-baseline gap-1">
-              <span className="text-xl font-semibold text-muted-foreground">R$</span>
-              <span
-                className={cn(
-                  'text-4xl font-extrabold tracking-tight tabular-nums',
-                  saldoMes >= 0 ? 'text-foreground' : 'text-destructive',
-                )}
-              >
-                {formatMoney(dashboard.saldoMes).replace('R$', '').trim()}
-              </span>
+              <div className="my-3 flex items-baseline gap-1">
+                <span className="text-xl font-semibold text-muted-foreground">
+                  R$
+                </span>
+                <span
+                  className={cn(
+                    'text-4xl font-extrabold tracking-tight tabular-nums',
+                    saldoMes >= 0 ? 'text-foreground' : 'text-destructive',
+                  )}
+                >
+                  {formatMoney(dashboard.saldoMes).replace('R$', '').trim()}
+                </span>
+              </div>
             </div>
 
             {/* Income & Expense Breakdown */}
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4 flex gap-3 lg:mt-0 lg:w-96 lg:shrink-0">
               <div className="flex flex-1 flex-col gap-1 rounded-xl bg-foreground/[0.04] p-3 border border-border">
-                <span className="text-xs font-medium text-muted-foreground">Entradas</span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  Entradas
+                </span>
                 <span className="text-base font-bold text-success tabular-nums">
                   R$ {formatMoney(totalEntradas).replace('R$', '').trim()}
                 </span>
               </div>
               <div className="flex flex-1 flex-col gap-1 rounded-xl bg-foreground/[0.04] p-3 border border-border">
-                <span className="text-xs font-medium text-muted-foreground">Saídas</span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  Saídas
+                </span>
                 <span className="text-base font-bold text-foreground tabular-nums">
                   R$ {formatMoney(totalSaidas).replace('R$', '').trim()}
                 </span>
@@ -150,8 +165,21 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Chart Widget (Desktop Only or always visible) */}
+          <div className="hidden lg:block rounded-3xl border border-border bg-card p-5 h-full">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+                Resumo de Despesas
+              </span>
+            </div>
+            <CategoryChart
+              data={gastoPorCategoria}
+              categories={categories ?? []}
+            />
+          </div>
+
           {/* Gasto por Categoria Widget */}
-          <div className="rounded-3xl border border-border bg-card p-5">
+          <div className="rounded-3xl border border-border bg-card p-5 lg:col-span-1 h-full">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
                 Gasto por categoria
@@ -186,7 +214,10 @@ export default function Home() {
                     : cat?.cor || 'var(--primary)';
 
                   return (
-                    <div key={item.categoriaId} className="flex flex-col gap-1.5">
+                    <div
+                      key={item.categoriaId}
+                      className="flex flex-col gap-1.5"
+                    >
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
                           <CategoryIcon
@@ -203,7 +234,9 @@ export default function Home() {
                         <span
                           className={cn(
                             'font-semibold tabular-nums',
-                            overBudget ? 'text-destructive' : 'text-muted-foreground',
+                            overBudget
+                              ? 'text-destructive'
+                              : 'text-muted-foreground',
                           )}
                         >
                           {meta !== null
@@ -228,7 +261,7 @@ export default function Home() {
           </div>
 
           {/* Últimas Transações Widget */}
-          <div className="rounded-3xl border border-border bg-card p-5">
+          <div className="rounded-3xl border border-border bg-card p-5 md:col-span-1 h-full">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
                 Últimas transações
@@ -242,7 +275,9 @@ export default function Home() {
             </div>
 
             {recentTransactions.length === 0 ? (
-              <p className="py-2 text-sm text-muted-foreground">Nenhuma transação recente.</p>
+              <p className="py-2 text-sm text-muted-foreground">
+                Nenhuma transação recente.
+              </p>
             ) : (
               <div className="flex flex-col">
                 {recentTransactions.map((t) => {
@@ -289,7 +324,7 @@ export default function Home() {
           </div>
 
           {/* Fatura por Cartão Widget */}
-          <div className="rounded-3xl border border-border bg-card p-5">
+          <div className="rounded-3xl border border-border bg-card p-5 md:col-span-1 h-full">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
                 Cartões de crédito

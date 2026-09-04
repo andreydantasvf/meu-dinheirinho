@@ -60,11 +60,7 @@ export function ControlledDatePicker<T extends FieldValues>({
 }) {
   const { field } = useController({ control, name });
   return (
-    <DatePickerField
-      id={name}
-      value={field.value}
-      onChange={field.onChange}
-    />
+    <DatePickerField id={name} value={field.value} onChange={field.onChange} />
   );
 }
 
@@ -85,7 +81,10 @@ export function ControlledSelect<T extends FieldValues>({
   )?.label;
   return (
     <Select value={field.value} onValueChange={field.onChange}>
-      <SelectTrigger id={name} className="w-full h-12 rounded-xl border-border bg-card text-sm text-foreground">
+      <SelectTrigger
+        id={name}
+        className="w-full h-12 rounded-xl border-border bg-card text-sm text-foreground"
+      >
         <SelectValue placeholder={placeholder}>{selectedLabel}</SelectValue>
       </SelectTrigger>
       <SelectContent>
