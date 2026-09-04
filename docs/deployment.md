@@ -33,13 +33,15 @@ Work through these in order — later steps depend on decisions made earlier (in
 
 4. **Turn off Coolify's auto-deploy-on-push** for this resource. Deploys should only happen via the GitHub Actions webhook (step 13) after CI passes — this is the opposite of Coolify's default behavior, so don't skip this.
 
-5. **Configure a persistent volume/storage mount** in Coolify for the SQLite database: mount path `/app/prisma` (matching the `api-data:/app/prisma` volume already modeled in the root `docker-compose.yml`'s `api-prod` service). This is the piece most likely to need adjustment on a real Coolify instance — the Post-Deploy Verification checklist below includes an explicit check that data survives a redeploy.
+5. **Configure a persistent volume/storage mount** in Coolify for the SQLite database: mount path `/app/data` (not `/app/prisma` — see warning below).
+
+   > ⚠️ **Never mount the persistent volume at `/app/prisma`.** A named/persistent volume is only populated from the image the *first* time it's created — after that, the volume's content shadows anything the image later brings to that same path, including new `prisma/migrations` folders. Every push after the first deploy would then build an image with a new migration, but the running container still sees only the old migration set from the (now stale) volume, so `prisma migrate deploy` silently applies nothing. This bit us in production once already (September 2026) — mounting at `/app/data` instead, matching the `DATABASE_URL` in step 6, keeps `schema.prisma`/`migrations` always sourced fresh from the image on every deploy, since the volume only covers the db file's own directory. The Post-Deploy Verification checklist below includes an explicit check that both data *and new migrations* survive a redeploy — don't skip it.
 
 6. **Enter backend environment variables in Coolify's UI** (not a committed `.env` file — `backend/.env` is gitignored, so Coolify must supply these directly):
 
    | Variable | Value | Notes |
    |---|---|---|
-   | `DATABASE_URL` | `file:./prisma/dev.db` | Relative to the container's `/app` working dir; persisted via the volume from step 5. |
+   | `DATABASE_URL` | `file:./data/dev.db` | Relative to the container's `/app` working dir; persisted via the volume from step 5. Must **not** point inside `prisma/` — see the warning in step 5. |
    | `AUTH_PASSWORD` | a new production-only password | Do not reuse your local dev password. |
    | `AUTH_TOKEN_SECRET` | output of `openssl rand -base64 32` | Signs the auth token (HMAC-SHA256). |
    | `AUTH_USER_NAME` | e.g. `Andrey` | Optional, cosmetic — powers the "Olá, {name}" greeting. |
@@ -89,6 +91,21 @@ Work through all of these after the first real deploy — this setup has never b
 4. Register a WebAuthn credential (Face ID/Touch ID) from the real deployed frontend, log out, and re-authenticate with it. This is the step most likely to fail if `WEBAUTHN_RP_ID`/`WEBAUTHN_ORIGIN` were set to the wrong domain (step 6) or the domains changed after the fact (step 12).
 5. Merge a throwaway PR into `main` and confirm: `ci.yml` ran on the PR, `deploy.yml` ran on the merge push, the Coolify webhook fired (visible in Coolify's deployment history), and the backend picked up the change.
 6. **Volume persistence check**: create a test record via the app, then trigger a redeploy (via the webhook again, or Coolify's "Redeploy" button) with no schema-affecting change, and confirm the record still exists afterward. If it's gone, the volume at `/app/prisma` isn't actually persisting across redeploys — check that Coolify's resolved volume config matches the `api-data:/app/prisma` mapping from `docker-compose.yml`, and that a redeploy doesn't recreate the container from a fresh volume by default.
+
+## Fixing an existing deploy with the volume mounted at `/app/prisma`
+
+If Coolify was already set up with the persistent storage at `/app/prisma` (the mistake described in step 5's warning above) and new migrations have stopped reaching production, migrate to `/app/data` without losing data:
+
+1. In Coolify, **add a second persistent storage entry** for the same resource: destination `/app/data`, backed by a new volume — leave the existing `/app/prisma` one in place for now.
+2. **Redeploy** so the container starts with both volumes mounted (`/app/prisma` with the old data, `/app/data` empty).
+3. Open Coolify's terminal for the running container (or SSH into the VPS and `docker exec` into it) and run:
+   ```bash
+   mkdir -p /app/data
+   cp /app/prisma/dev.db /app/data/dev.db
+   ```
+4. Update the `DATABASE_URL` env var to `file:./data/dev.db` (step 6 above).
+5. **Redeploy again.** Check the container logs for the `prisma:deploy` step — it should now report the previously-missing migration(s) applying cleanly, and `GET /health` should still work. Spot-check that existing data (accounts, transactions, categories) is still there.
+6. Once confirmed, **remove the old `/app/prisma` storage entry** in Coolify so future deploys stop mounting (and shadowing) it.
 
 ## Known follow-up (not done here)
 
