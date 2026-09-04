@@ -23,6 +23,7 @@ import { apiStringToCents, centsToApiString, formatMoney } from '@/lib/money';
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useCreatePurchase, usePurchase, useUpdatePurchase } from '@/hooks/use-purchases';
+import { useCreateFixedExpense } from '@/hooks/use-fixed-expenses';
 import type { Purchase } from '@/types/entities';
 
 const purchaseSchema = z.object({
@@ -34,6 +35,7 @@ const purchaseSchema = z.object({
   categoryId: z.string().min(1, 'Selecione uma categoria'),
   accountId: z.string().min(1, 'Selecione uma conta'),
   dataCompra: z.string().min(1, 'Selecione uma data'),
+  isSubscription: z.boolean().optional(),
 });
 
 type PurchaseFormValues = z.infer<typeof purchaseSchema>;
@@ -45,6 +47,7 @@ const emptyValues: PurchaseFormValues = {
   categoryId: '',
   accountId: '',
   dataCompra: new Date().toISOString(),
+  isSubscription: false,
 };
 
 function toFormValues(purchase: Purchase): PurchaseFormValues {
@@ -55,6 +58,7 @@ function toFormValues(purchase: Purchase): PurchaseFormValues {
     categoryId: purchase.categoryId,
     accountId: purchase.accountId,
     dataCompra: purchase.dataCompra,
+    isSubscription: false,
   };
 }
 
@@ -66,6 +70,7 @@ export default function NovaCompraParcelada() {
   const { data: accounts } = useAccounts();
   const { data: purchase, isLoading: isLoadingPurchase } = usePurchase(id);
   const createPurchase = useCreatePurchase();
+  const createFixedExpense = useCreateFixedExpense();
   const updatePurchase = useUpdatePurchase();
 
   const {
@@ -82,6 +87,7 @@ export default function NovaCompraParcelada() {
 
   const valorTotal = watch('valorTotal');
   const numeroParcelas = watch('numeroParcelas');
+  const isSubscription = watch('isSubscription');
   const despesaCategories =
     categories?.filter((category) => category.tipo === 'DESPESA') ?? [];
   const creditCards = accounts?.filter((account) => account.tipo === 'CARTAO_CREDITO') ?? [];
@@ -90,7 +96,16 @@ export default function NovaCompraParcelada() {
 
   async function onSubmit(values: PurchaseFormValues) {
     try {
-      if (isEditing && id) {
+      if (values.isSubscription && !isEditing) {
+        await createFixedExpense.mutateAsync({
+          accountId: values.accountId,
+          categoryId: values.categoryId,
+          valor: values.valorTotal,
+          descricao: values.descricao,
+          dataInicio: values.dataCompra,
+        });
+        toast.success('Assinatura criada com sucesso');
+      } else if (isEditing && id) {
         await updatePurchase.mutateAsync({ id, ...values });
         toast.success('Compra parcelada atualizada com sucesso');
       } else {
@@ -125,6 +140,8 @@ export default function NovaCompraParcelada() {
           <FieldError errors={[errors.valorTotal]} />
         </div>
 
+        {!isSubscription && (
+          <>
         {/* Installments Stepper Control */}
         <div className="flex flex-col gap-2">
           <label htmlFor="numeroParcelas" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
@@ -171,6 +188,9 @@ export default function NovaCompraParcelada() {
               </p>
             )}
           </div>
+        )}
+
+          </>
         )}
 
         <FieldGroup className="flex flex-col gap-4">
@@ -232,6 +252,20 @@ export default function NovaCompraParcelada() {
           </Field>
         </FieldGroup>
 
+        {!isEditing && (
+          <label className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-foreground/5 cursor-pointer transition-colors">
+            <div className="flex flex-1 flex-col">
+              <span className="text-sm font-bold text-foreground">É uma assinatura?</span>
+              <span className="text-xs text-muted-foreground">Valor fixo todo mês sem limite de parcelas</span>
+            </div>
+            <input
+              type="checkbox"
+              className="size-5 rounded border-border text-primary focus:ring-primary/20 bg-background"
+              {...register('isSubscription')}
+            />
+          </label>
+        )}
+
         <Button
           type="submit"
           disabled={isSubmitting}
@@ -239,7 +273,7 @@ export default function NovaCompraParcelada() {
         >
           {isSubmitting
             ? 'Salvando parcelas...'
-            : isEditing ? `Atualizar ${numeroParcelas} lançamentos` : `Criar ${numeroParcelas} lançamentos`}
+            : isSubscription ? 'Criar assinatura' : isEditing ? `Atualizar ${numeroParcelas} lançamentos` : `Criar ${numeroParcelas} lançamentos`}
         </Button>
       </form>
     </ModalRoute>

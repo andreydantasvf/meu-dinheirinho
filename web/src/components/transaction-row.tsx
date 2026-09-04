@@ -1,4 +1,4 @@
-import { IconLock, IconTrash } from '@tabler/icons-react';
+import { IconLock, IconTrash, IconRepeat } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { CategoryIcon } from '@/components/category-icon';
 import { formatMoney } from '@/lib/money';
@@ -19,6 +19,7 @@ export function TransactionRow({
   onDelete: () => void;
 }) {
   const isLocked = Boolean(transaction.purchaseId);
+  const isFixed = Boolean(transaction.fixedExpenseId);
   const isReceita = transaction.tipo === 'RECEITA';
 
   return (
@@ -59,6 +60,13 @@ export function TransactionRow({
           <span className="inline-flex items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
             <IconLock size={10} />
             {transaction.parcelaNumero}/{transaction.parcelaTotal}
+          </span>
+        )}
+
+        {isFixed && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+            <IconRepeat size={10} />
+            {account?.tipo === 'CARTAO_CREDITO' ? 'Assinatura' : 'Fixo'}
           </span>
         )}
       </div>

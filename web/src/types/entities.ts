@@ -41,6 +41,7 @@ export type Transaction = {
   data: string;
   tipo: TransactionType;
   purchaseId: string | null;
+  fixedExpenseId: string | null;
   parcelaNumero: number | null;
   parcelaTotal: number | null;
   createdAt: string;
