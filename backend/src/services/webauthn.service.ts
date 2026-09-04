@@ -4,7 +4,10 @@ import {
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
 } from '@simplewebauthn/server';
-import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
+import type {
+  AuthenticationResponseJSON,
+  RegistrationResponseJSON,
+} from '@simplewebauthn/server';
 import { env } from '../config/env';
 import { currentUserName, issueToken } from '../lib/token';
 import { webauthnRepository } from '../repositories/webauthn.repository';
@@ -36,7 +39,8 @@ export const webauthnService = {
   },
 
   async registerVerify(response: RegistrationResponseJSON) {
-    if (!registrationChallenge) throw new AppError('Nenhum registro em andamento', 400);
+    if (!registrationChallenge)
+      throw new AppError('Nenhum registro em andamento', 400);
 
     const verification = await verifyRegistrationResponse({
       response,
@@ -75,7 +79,8 @@ export const webauthnService = {
   },
 
   async loginVerify(response: AuthenticationResponseJSON) {
-    if (!authenticationChallenge) throw new AppError('Nenhum login em andamento', 400);
+    if (!authenticationChallenge)
+      throw new AppError('Nenhum login em andamento', 400);
 
     const credential = await webauthnRepository.findByCredentialId(response.id);
     if (!credential) throw new AppError('Dispositivo não reconhecido', 401);
@@ -93,11 +98,12 @@ export const webauthnService = {
     });
     authenticationChallenge = null;
 
-    if (!verification.verified) throw new AppError('Não foi possível verificar o dispositivo', 401);
+    if (!verification.verified)
+      throw new AppError('Não foi possível verificar o dispositivo', 401);
 
     await webauthnRepository.updateCounter(
       credential.credentialId,
-      BigInt(verification.authenticationInfo.newCounter)
+      BigInt(verification.authenticationInfo.newCounter),
     );
 
     return { token: issueToken(), name: currentUserName() };

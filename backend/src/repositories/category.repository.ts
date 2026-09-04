@@ -1,5 +1,8 @@
 import { prisma } from '../lib/prisma';
-import type { CreateCategoryInput, UpdateCategoryInput } from '../validators/category.schema';
+import type {
+  CreateCategoryInput,
+  UpdateCategoryInput,
+} from '../validators/category.schema';
 
 export const categoryRepository = {
   findAll() {

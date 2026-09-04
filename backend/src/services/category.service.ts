@@ -1,6 +1,9 @@
 import { categoryRepository } from '../repositories/category.repository';
 import { AppError } from '../types/errors';
-import type { CreateCategoryInput, UpdateCategoryInput } from '../validators/category.schema';
+import type {
+  CreateCategoryInput,
+  UpdateCategoryInput,
+} from '../validators/category.schema';
 
 export const categoryService = {
   list() {

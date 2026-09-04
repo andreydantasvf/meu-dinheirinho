@@ -34,8 +34,9 @@ model Account {
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
-  transactions Transaction[]
-  purchases    Purchase[]
+  transactions  Transaction[]
+  purchases     Purchase[]
+  fixedExpenses FixedExpense[]
 
   @@map("accounts")
 }
@@ -48,8 +49,9 @@ model Category {
   cor        String?
   metaMensal Decimal?     @map("meta_mensal")
 
-  transactions Transaction[]
-  purchases    Purchase[]
+  transactions  Transaction[]
+  purchases     Purchase[]
+  fixedExpenses FixedExpense[]
 
   @@map("categories")
 }
@@ -82,23 +84,43 @@ model WebauthnCredential {
 }
 
 model Transaction {
-  id            String          @id @default(cuid())
-  accountId     String          @map("account_id")
-  categoryId    String          @map("category_id")
-  valor         Decimal
-  descricao     String
-  data          DateTime
-  tipo          TransactionType
-  purchaseId    String?         @map("purchase_id")
-  parcelaNumero Int?            @map("parcela_numero")
-  parcelaTotal  Int?            @map("parcela_total")
-  createdAt     DateTime        @default(now()) @map("created_at")
+  id             String          @id @default(cuid())
+  accountId      String          @map("account_id")
+  categoryId     String          @map("category_id")
+  valor          Decimal
+  descricao      String
+  data           DateTime
+  tipo           TransactionType
+  purchaseId     String?         @map("purchase_id")
+  fixedExpenseId String?         @map("fixed_expense_id")
+  parcelaNumero  Int?            @map("parcela_numero")
+  parcelaTotal   Int?            @map("parcela_total")
+  createdAt      DateTime        @default(now()) @map("created_at")
 
-  account  Account   @relation(fields: [accountId], references: [id])
-  category Category  @relation(fields: [categoryId], references: [id])
-  purchase Purchase? @relation(fields: [purchaseId], references: [id])
+  account      Account       @relation(fields: [accountId], references: [id])
+  category     Category      @relation(fields: [categoryId], references: [id])
+  purchase     Purchase?     @relation(fields: [purchaseId], references: [id])
+  fixedExpense FixedExpense? @relation(fields: [fixedExpenseId], references: [id])
 
   @@index([accountId, data])
   @@index([purchaseId])
+  @@index([fixedExpenseId])
   @@map("transactions")
+}
+
+model FixedExpense {
+  id         String   @id @default(cuid())
+  accountId  String   @map("account_id")
+  categoryId String   @map("category_id")
+  valor      Decimal
+  descricao  String
+  dataInicio DateTime @map("data_inicio")
+  status     String   @default("ACTIVE") // ACTIVE ou CANCELED
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  account      Account       @relation(fields: [accountId], references: [id])
+  category     Category      @relation(fields: [categoryId], references: [id])
+  transactions Transaction[]
+
+  @@map("fixed_expenses")
 }

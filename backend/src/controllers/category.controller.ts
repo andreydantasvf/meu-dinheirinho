@@ -1,6 +1,9 @@
 import type { Request, Response } from 'express';
 import { categoryService } from '../services/category.service';
-import { createCategorySchema, updateCategorySchema } from '../validators/category.schema';
+import {
+  createCategorySchema,
+  updateCategorySchema,
+} from '../validators/category.schema';
 
 type IdParams = { id: string };
 

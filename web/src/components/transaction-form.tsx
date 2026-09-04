@@ -1,3 +1,4 @@
+import { useCreateFixedExpense } from '@/hooks/use-fixed-expenses';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,6 +37,7 @@ const transactionSchema = z.object({
   accountId: z.string().min(1, 'Selecione uma conta'),
   descricao: z.string().trim().min(1, 'Informe uma descrição'),
   data: z.string().min(1, 'Selecione uma data'),
+  isFixedExpense: z.boolean().optional(),
 });
 
 type TransactionFormValues = z.infer<typeof transactionSchema>;
@@ -47,6 +49,7 @@ const emptyValues: TransactionFormValues = {
   accountId: '',
   descricao: '',
   data: new Date().toISOString(),
+  isFixedExpense: false,
 };
 
 function toFormValues(transaction: Transaction): TransactionFormValues {
@@ -57,6 +60,7 @@ function toFormValues(transaction: Transaction): TransactionFormValues {
     accountId: transaction.accountId,
     descricao: transaction.descricao,
     data: transaction.data,
+    isFixedExpense: false,
   };
 }
 
@@ -73,6 +77,7 @@ export function TransactionForm({
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
   const createTransaction = useCreateTransaction();
+  const createFixedExpense = useCreateFixedExpense();
   const updateTransaction = useUpdateTransaction();
 
   const isLocked = Boolean(transaction?.purchaseId);
@@ -94,7 +99,16 @@ export function TransactionForm({
 
   async function onSubmit(values: TransactionFormValues) {
     try {
-      if (isEditing && id) {
+      if (values.isFixedExpense && !isEditing) {
+        await createFixedExpense.mutateAsync({
+          accountId: values.accountId,
+          categoryId: values.categoryId,
+          valor: values.valor,
+          descricao: values.descricao,
+          dataInicio: values.data,
+        });
+        toast.success('Despesa fixa criada com sucesso');
+      } else if (isEditing && id) {
         await updateTransaction.mutateAsync({ id, ...values });
         toast.success('Transação atualizada com sucesso');
       } else {
@@ -217,6 +231,20 @@ export function TransactionForm({
               <FieldError errors={[errors.data]} />
             </Field>
           </FieldGroup>
+
+            {!isEditing && tipo === 'DESPESA' && (
+              <label className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-foreground/5 cursor-pointer transition-colors">
+                <div className="flex flex-1 flex-col">
+                  <span className="text-sm font-bold text-foreground">Despesa fixa (mensal)</span>
+                  <span className="text-xs text-muted-foreground">Repete todo mês neste mesmo dia</span>
+                </div>
+                <input
+                  type="checkbox"
+                  className="size-5 rounded border-border text-primary focus:ring-primary/20 bg-background"
+                  {...register('isFixedExpense')}
+                />
+              </label>
+            )}
 
           <Button
             type="submit"

@@ -33,7 +33,9 @@ describe('transactionService', () => {
         createdAt: new Date(),
       },
     ];
-    vi.mocked(transactionRepository.findAll).mockResolvedValue(transactions as never);
+    vi.mocked(transactionRepository.findAll).mockResolvedValue(
+      transactions as never,
+    );
 
     const result = await transactionService.list();
 
@@ -43,7 +45,9 @@ describe('transactionService', () => {
   it('get() throws AppError 404 when the transaction does not exist', async () => {
     vi.mocked(transactionRepository.findById).mockResolvedValue(null);
 
-    await expect(transactionService.get('missing')).rejects.toMatchObject({ status: 404 });
+    await expect(transactionService.get('missing')).rejects.toMatchObject({
+      status: 404,
+    });
   });
 
   it('create() persists a standalone transaction via the repository', async () => {
@@ -63,7 +67,9 @@ describe('transactionService', () => {
       parcelaTotal: null,
       createdAt: new Date(),
     };
-    vi.mocked(transactionRepository.create).mockResolvedValue(createdTransaction as never);
+    vi.mocked(transactionRepository.create).mockResolvedValue(
+      createdTransaction as never,
+    );
 
     const result = await transactionService.create(data);
 
@@ -79,10 +85,14 @@ describe('transactionService', () => {
     const updated = { id: 't1', descricao: 'Novo valor' };
     vi.mocked(transactionRepository.update).mockResolvedValue(updated as never);
 
-    const result = await transactionService.update('t1', { descricao: 'Novo valor' });
+    const result = await transactionService.update('t1', {
+      descricao: 'Novo valor',
+    });
 
     expect(result).toBe(updated);
-    expect(transactionRepository.update).toHaveBeenCalledWith('t1', { descricao: 'Novo valor' });
+    expect(transactionRepository.update).toHaveBeenCalledWith('t1', {
+      descricao: 'Novo valor',
+    });
   });
 
   it('update() throws AppError 400 for a parceled transaction (purchaseId set)', async () => {
@@ -91,7 +101,9 @@ describe('transactionService', () => {
       purchaseId: 'purchase-1',
     } as never);
 
-    await expect(transactionService.update('t1', { descricao: 'x' })).rejects.toMatchObject({
+    await expect(
+      transactionService.update('t1', { descricao: 'x' }),
+    ).rejects.toMatchObject({
       status: 400,
     });
     expect(transactionRepository.update).not.toHaveBeenCalled();
@@ -114,7 +126,9 @@ describe('transactionService', () => {
       purchaseId: 'purchase-1',
     } as never);
 
-    await expect(transactionService.remove('t1')).rejects.toMatchObject({ status: 400 });
+    await expect(transactionService.remove('t1')).rejects.toMatchObject({
+      status: 400,
+    });
     expect(transactionRepository.remove).not.toHaveBeenCalled();
   });
 });

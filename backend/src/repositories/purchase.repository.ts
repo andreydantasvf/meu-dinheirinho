@@ -18,7 +18,10 @@ export const purchaseRepository = {
     return prisma.purchase.findUnique({ where: { id } });
   },
 
-  createWithInstallments(data: CreatePurchaseInput, installments: InstallmentInput[]) {
+  createWithInstallments(
+    data: CreatePurchaseInput,
+    installments: InstallmentInput[],
+  ) {
     return prisma.$transaction(async (tx) => {
       const purchase = await tx.purchase.create({ data });
       await tx.transaction.createMany({
@@ -38,7 +41,11 @@ export const purchaseRepository = {
     });
   },
 
-  updateWithInstallments(id: string, data: CreatePurchaseInput, installments: InstallmentInput[]) {
+  updateWithInstallments(
+    id: string,
+    data: CreatePurchaseInput,
+    installments: InstallmentInput[],
+  ) {
     return prisma.$transaction(async (tx) => {
       await tx.transaction.deleteMany({ where: { purchaseId: id } });
       const purchase = await tx.purchase.update({ where: { id }, data });

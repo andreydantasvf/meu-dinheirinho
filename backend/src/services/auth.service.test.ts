@@ -10,7 +10,9 @@ describe('authService', () => {
   });
 
   it('login() throws AppError 401 when the password does not match', () => {
-    expect(() => authService.login('wrong-password')).toThrow(expect.objectContaining({ status: 401 }));
+    expect(() => authService.login('wrong-password')).toThrow(
+      expect.objectContaining({ status: 401 }),
+    );
   });
 
   it('login() throws AppError 401 for an empty password', () => {

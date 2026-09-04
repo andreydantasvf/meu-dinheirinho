@@ -1,6 +1,9 @@
 import type { Request, Response } from 'express';
 import { transactionService } from '../services/transaction.service';
-import { createTransactionSchema, updateTransactionSchema } from '../validators/transaction.schema';
+import {
+  createTransactionSchema,
+  updateTransactionSchema,
+} from '../validators/transaction.schema';
 
 type IdParams = { id: string };
 

@@ -13,7 +13,9 @@ export function generateInstallments(input: {
   dataCompra: Date;
 }): Installment[] {
   const valorTotal = new Prisma.Decimal(input.valorTotal);
-  const totalCentavos = valorTotal.times(100).toDecimalPlaces(0, Prisma.Decimal.ROUND_FLOOR);
+  const totalCentavos = valorTotal
+    .times(100)
+    .toDecimalPlaces(0, Prisma.Decimal.ROUND_FLOOR);
   const centavosPorParcela = totalCentavos
     .dividedBy(input.numeroParcelas)
     .toDecimalPlaces(0, Prisma.Decimal.ROUND_FLOOR);
@@ -23,7 +25,9 @@ export function generateInstallments(input: {
 
   for (let i = 1; i <= input.numeroParcelas; i++) {
     const isUltima = i === input.numeroParcelas;
-    const valorCentavos = isUltima ? totalCentavos.minus(somaCentavos) : centavosPorParcela;
+    const valorCentavos = isUltima
+      ? totalCentavos.minus(somaCentavos)
+      : centavosPorParcela;
     somaCentavos = somaCentavos.plus(valorCentavos);
 
     installments.push({
@@ -39,7 +43,9 @@ export function generateInstallments(input: {
 
 function addMonthsClamped(date: Date, months: number): Date {
   const day = date.getUTCDate();
-  const result = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
+  const result = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1),
+  );
   const lastDayOfTargetMonth = new Date(
     Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0),
   ).getUTCDate();

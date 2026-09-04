@@ -15,7 +15,10 @@ describe('generateInstallments', () => {
     expect(installments[1].valor.toString()).toBe('33.33');
     expect(installments[2].valor.toString()).toBe('33.34');
 
-    const soma = installments.reduce((acc, i) => acc.plus(i.valor), new Prisma.Decimal(0));
+    const soma = installments.reduce(
+      (acc, i) => acc.plus(i.valor),
+      new Prisma.Decimal(0),
+    );
     expect(soma.toString()).toBe('100');
   });
 

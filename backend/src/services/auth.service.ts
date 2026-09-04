@@ -7,7 +7,8 @@ export const authService = {
   login(password: string) {
     const expected = Buffer.from(env.AUTH_PASSWORD);
     const actual = Buffer.from(password);
-    const valid = expected.length === actual.length && timingSafeEqual(expected, actual);
+    const valid =
+      expected.length === actual.length && timingSafeEqual(expected, actual);
     if (!valid) throw new AppError('Senha inválida', 401);
 
     return { token: issueToken(), name: currentUserName() };

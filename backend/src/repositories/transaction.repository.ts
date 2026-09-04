@@ -1,5 +1,8 @@
 import { prisma } from '../lib/prisma';
-import type { CreateTransactionInput, UpdateTransactionInput } from '../validators/transaction.schema';
+import type {
+  CreateTransactionInput,
+  UpdateTransactionInput,
+} from '../validators/transaction.schema';
 
 export const transactionRepository = {
   findAll() {

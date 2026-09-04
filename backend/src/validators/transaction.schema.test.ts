@@ -12,13 +12,19 @@ describe('transaction.schema', () => {
     };
 
     it('rejects valor with more than 2 decimal places', () => {
-      const result = createTransactionSchema.safeParse({ ...base, valor: 100.555 });
+      const result = createTransactionSchema.safeParse({
+        ...base,
+        valor: 100.555,
+      });
 
       expect(result.success).toBe(false);
     });
 
     it('accepts valor with exactly 2 decimal places', () => {
-      const result = createTransactionSchema.safeParse({ ...base, valor: 100.55 });
+      const result = createTransactionSchema.safeParse({
+        ...base,
+        valor: 100.55,
+      });
 
       expect(result.success).toBe(true);
     });

@@ -29,6 +29,7 @@ import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useDeleteTransaction, useExtrato } from '@/hooks/use-transactions';
 import { useDeletePurchase } from '@/hooks/use-purchases';
+import { useDeleteFixedExpense } from '@/hooks/use-fixed-expenses';
 import {
   formatDateShort,
   currentMonth,
@@ -65,6 +66,7 @@ export default function Extrato() {
   });
   const deleteTransaction = useDeleteTransaction();
   const deletePurchase = useDeletePurchase();
+  const deleteFixedExpense = useDeleteFixedExpense();
 
   const categoryMap = useMemo(
     () => new Map(categories?.map((c) => [c.id, c])),
@@ -101,6 +103,11 @@ export default function Extrato() {
           accountId: deleting.accountId,
         });
         toast.success('Compra parcelada excluída com sucesso');
+      } else if (deleting.fixedExpenseId) {
+        await deleteFixedExpense.mutateAsync({
+          id: deleting.fixedExpenseId,
+        });
+        toast.success('Despesa fixa/assinatura cancelada com sucesso');
       } else {
         await deleteTransaction.mutateAsync({
           id: deleting.id,

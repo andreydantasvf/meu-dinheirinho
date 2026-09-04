@@ -12,13 +12,19 @@ describe('purchase.schema', () => {
     };
 
     it('rejects valorTotal with more than 2 decimal places', () => {
-      const result = createPurchaseSchema.safeParse({ ...base, valorTotal: 100.555 });
+      const result = createPurchaseSchema.safeParse({
+        ...base,
+        valorTotal: 100.555,
+      });
 
       expect(result.success).toBe(false);
     });
 
     it('accepts valorTotal with exactly 2 decimal places', () => {
-      const result = createPurchaseSchema.safeParse({ ...base, valorTotal: 100.55 });
+      const result = createPurchaseSchema.safeParse({
+        ...base,
+        valorTotal: 100.55,
+      });
 
       expect(result.success).toBe(true);
     });

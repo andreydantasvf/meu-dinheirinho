@@ -1,6 +1,9 @@
 import type { Request, Response } from 'express';
 import { reportsService } from '../services/reports.service';
-import { dashboardQuerySchema, extratoQuerySchema } from '../validators/reports.schema';
+import {
+  dashboardQuerySchema,
+  extratoQuerySchema,
+} from '../validators/reports.schema';
 
 type AccountIdParams = { id: string };
 
@@ -14,7 +17,11 @@ export const reportsController = {
   async extrato(req: Request, res: Response) {
     const { mes, categoriaId, accountId } = extratoQuerySchema.parse(req.query);
 
-    const transactions = await reportsService.extrato({ mes, categoriaId, accountId });
+    const transactions = await reportsService.extrato({
+      mes,
+      categoriaId,
+      accountId,
+    });
     res.json(transactions);
   },
 
