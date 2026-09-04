@@ -141,6 +141,7 @@ Response de uma Transaction:
   "data": "2026-08-05T00:00:00.000Z",
   "tipo": "DESPESA",
   "purchaseId": null,
+  "fixedExpenseId": null,
   "parcelaNumero": null,
   "parcelaTotal": null,
   "createdAt": "2026-08-05T12:00:00.000Z"
@@ -181,6 +182,36 @@ Response de `POST /purchases` (a Purchase criada, não as transações — use `
 }
 ```
 
+
+## Fixed Expenses (Despesas Fixas e Assinaturas)
+
+Semelhante às compras parceladas, mas sem número de parcelas. Uma despesa fixa gera transações infinitas (pré-geradas até 12 meses no futuro via cron job no backend).
+
+| Método | Rota | Body |
+|---|---|---|
+| GET | `/fixed-expenses` | — |
+| GET | `/fixed-expenses/:id` | — |
+| POST | `/fixed-expenses` | `{ accountId, categoryId, valor, descricao, dataInicio }` |
+| DELETE | `/fixed-expenses/:id` | — |
+
+- `valor`: número positivo, até 2 casas decimais.
+- `DELETE /fixed-expenses/:id`: Soft-delete. Altera o status para `CANCELED` e apaga **apenas as transações futuras** (data ≥ hoje). As transações passadas são preservadas para não quebrar o histórico.
+- **Limite do Cartão**: Diferente de compras parceladas, transações originadas por `FixedExpense` **não abatem o `limiteDisponivel`** do cartão para meses futuros. Elas só comprometem o limite na fatura do mês atual.
+
+Response de `POST /fixed-expenses`:
+```json
+{
+  "id": "...",
+  "accountId": "...",
+  "categoryId": "...",
+  "valor": "49.9",
+  "descricao": "Netflix",
+  "dataInicio": "2026-08-01T00:00:00.000Z",
+  "status": "ACTIVE",
+  "createdAt": "2026-08-08T12:00:00.000Z"
+}
+```
+
 ## Reports (dashboard, extrato, fatura)
 
 Camada somente-leitura de agregação sobre `Transaction`/`Account` — sem model Prisma próprio.
@@ -212,7 +243,7 @@ Agrega **todas as contas** para o mês informado (calendário, não ciclo de fat
 
 ```json
 [
-  { "id": "...", "accountId": "...", "categoryId": "...", "valor": "150.5", "descricao": "Supermercado", "data": "2026-08-05T00:00:00.000Z", "tipo": "DESPESA", "purchaseId": null, "parcelaNumero": null, "parcelaTotal": null, "createdAt": "..." }
+  { "id": "...", "accountId": "...", "categoryId": "...", "valor": "150.5", "descricao": "Supermercado", "data": "2026-08-05T00:00:00.000Z", "tipo": "DESPESA", "purchaseId": null, "fixedExpenseId": null, "parcelaNumero": null, "parcelaTotal": null, "createdAt": "..." }
 ]
 ```
 
