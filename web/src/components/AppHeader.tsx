@@ -24,7 +24,9 @@ export function AppHeader() {
           alt="Meu Dinheirinho Logo"
           className="size-8 object-contain drop-shadow-[0_0_8px_rgba(0,200,255,0.3)]"
         />
-        <h1 className="text-xl font-bold tracking-tight text-foreground">{title}</h1>
+        <h1 className="text-xl font-bold tracking-tight text-foreground">
+          {title}
+        </h1>
         {!isOnline && (
           <Badge variant="destructive">
             <IconWifiOff />
