@@ -137,8 +137,8 @@ export function TransactionForm({
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-        <fieldset disabled={isLocked} className="contents">
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <fieldset disabled={isLocked} className="flex flex-col gap-5 min-w-0 border-none p-0 m-0">
           {/* Segmented Type Toggle */}
           <TransactionTypeToggle control={control} name="tipo" />
 
