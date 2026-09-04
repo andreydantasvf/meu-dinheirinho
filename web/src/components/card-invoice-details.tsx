@@ -128,7 +128,13 @@ export function CardInvoiceDetails({ account }: { account: Account }) {
                 transaction={transaction}
                 category={categoryMap.get(transaction.categoryId)}
                 account={account}
-                onEdit={() => navigate(transaction.purchaseId ? `/compras/${transaction.purchaseId}` : `/transacoes/${transaction.id}`)}
+                onEdit={() =>
+                  navigate(
+                    transaction.purchaseId
+                      ? `/compras/${transaction.purchaseId}`
+                      : `/transacoes/${transaction.id}`,
+                  )
+                }
                 onDelete={() => setDeleting(transaction)}
               />
             ))}

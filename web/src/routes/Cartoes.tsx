@@ -33,10 +33,13 @@ export default function Cartoes() {
   const [editing, setEditing] = useState<Account | undefined>(undefined);
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Account | undefined>(undefined);
-  const [focusedAccountId, setFocusedAccountId] = useState<string | undefined>(undefined);
+  const [focusedAccountId, setFocusedAccountId] = useState<string | undefined>(
+    undefined,
+  );
 
   const cards = useMemo(
-    () => accounts?.filter((account) => account.tipo === 'CARTAO_CREDITO') ?? [],
+    () =>
+      accounts?.filter((account) => account.tipo === 'CARTAO_CREDITO') ?? [],
     [accounts],
   );
   const others =
@@ -77,7 +80,9 @@ export default function Cartoes() {
     <div className="flex flex-col gap-6 p-4">
       {/* Header & Add Button */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold tracking-tight text-foreground">Cartões e Contas</h2>
+        <h2 className="text-xl font-bold tracking-tight text-foreground">
+          Cartões e Contas
+        </h2>
         <Button
           onClick={openCreate}
           size="sm"
@@ -139,11 +144,11 @@ export default function Cartoes() {
           <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground px-1">
             Outras Contas & Bancos
           </span>
-          <div className="flex flex-col rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-0 md:gap-4 md:bg-transparent md:border-none md:rounded-none bg-card border border-border rounded-2xl overflow-hidden md:overflow-visible">
             {others.map((account) => (
               <div
                 key={account.id}
-                className="flex items-center justify-between border-b border-border p-4 last:border-b-0"
+                className="flex items-center justify-between border-b border-border p-4 last:border-b-0 md:rounded-3xl md:border md:bg-card md:p-5"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex size-10 items-center justify-center rounded-2xl bg-foreground/5 text-primary">
@@ -159,7 +164,7 @@ export default function Cartoes() {
                   </div>
                 </div>
 
-                <div className="flex gap-1">
+                <div className="flex gap-1 shrink-0">
                   <Button
                     variant="ghost"
                     size="icon"

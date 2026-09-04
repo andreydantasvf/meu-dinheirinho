@@ -47,12 +47,18 @@ const iconMap: Record<string, React.ElementType> = {
   compras: IconShoppingBag,
 };
 
-function getIconComponent(name?: string, icon?: string | null): React.ElementType {
+function getIconComponent(
+  name?: string,
+  icon?: string | null,
+): React.ElementType {
   if (icon && icon.length > 2 && iconMap[icon.toLowerCase()]) {
     return iconMap[icon.toLowerCase()];
   }
   if (name) {
-    const key = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const key = name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
     for (const [k, Component] of Object.entries(iconMap)) {
       if (key.includes(k)) return Component;
     }
@@ -67,7 +73,9 @@ export function CategoryIcon({
   size = 18,
   className = '',
 }: CategoryIconProps) {
-  const isEmoji = Boolean(icon && icon.trim() && Array.from(icon.trim()).length <= 2);
+  const isEmoji = Boolean(
+    icon && icon.trim() && Array.from(icon.trim()).length <= 2,
+  );
   const IconComponent = getIconComponent(name, icon);
 
   return (

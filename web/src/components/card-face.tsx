@@ -85,7 +85,9 @@ export function CardFace({
                 {account.diaFechamento
                   ? `Fecha dia ${account.diaFechamento}`
                   : 'Fatura aberta'}{' '}
-                {account.diaVencimento ? `· Vence dia ${account.diaVencimento}` : ''}
+                {account.diaVencimento
+                  ? `· Vence dia ${account.diaVencimento}`
+                  : ''}
               </span>
             </div>
 
@@ -160,9 +162,13 @@ export function CardFace({
                       Fatura Atual
                     </span>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-bold text-zinc-400">R$</span>
+                      <span className="text-sm font-bold text-zinc-400">
+                        R$
+                      </span>
                       <span className="text-2xl font-black tracking-tight text-white tabular-nums">
-                        {formatMoney(fatura.faturaAtual).replace('R$', '').trim()}
+                        {formatMoney(fatura.faturaAtual)
+                          .replace('R$', '')
+                          .trim()}
                       </span>
                     </div>
                   </div>
@@ -172,7 +178,10 @@ export function CardFace({
                       Disponível
                     </span>
                     <span className="text-xs font-extrabold text-zinc-200 tabular-nums">
-                      R$ {formatMoney(fatura.limiteDisponivel).replace('R$', '').trim()}
+                      R${' '}
+                      {formatMoney(fatura.limiteDisponivel)
+                        .replace('R$', '')
+                        .trim()}
                     </span>
                   </div>
                 </div>
@@ -180,7 +189,10 @@ export function CardFace({
                 {/* Progress Bar */}
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800/80">
                   <div
-                    className={cn('h-full rounded-full transition-all duration-500', theme.progressBar)}
+                    className={cn(
+                      'h-full rounded-full transition-all duration-500',
+                      theme.progressBar,
+                    )}
                     style={{ width: `${usedPct}%` }}
                   />
                 </div>
@@ -188,7 +200,9 @@ export function CardFace({
             ) : (
               <div className="flex items-center justify-between text-xs text-zinc-400">
                 <span>•••• •••• •••• {cardLastDigits}</span>
-                <span>Limite R$ {formatMoney(limite).replace('R$', '').trim()}</span>
+                <span>
+                  Limite R$ {formatMoney(limite).replace('R$', '').trim()}
+                </span>
               </div>
             )}
           </div>
@@ -219,7 +233,9 @@ export function CardFace({
                 </span>
               </div>
               <div className="h-8 w-14 bg-zinc-900 border border-zinc-700 rounded-md flex items-center justify-center">
-                <span className="font-mono text-xs font-black text-amber-400">CVV 842</span>
+                <span className="font-mono text-xs font-black text-amber-400">
+                  CVV 842
+                </span>
               </div>
             </div>
 
@@ -228,20 +244,29 @@ export function CardFace({
               <div className="flex items-center gap-1.5">
                 <IconCalendar size={14} className={theme.accent} />
                 <span className="text-[11px]">
-                  Fecha: <strong className="text-white">{account.diaFechamento || 'N/A'}</strong>
+                  Fecha:{' '}
+                  <strong className="text-white">
+                    {account.diaFechamento || 'N/A'}
+                  </strong>
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <IconInfoCircle size={14} className={theme.accent} />
                 <span className="text-[11px]">
-                  Vence: <strong className="text-white">{account.diaVencimento || 'N/A'}</strong>
+                  Vence:{' '}
+                  <strong className="text-white">
+                    {account.diaVencimento || 'N/A'}
+                  </strong>
                 </span>
               </div>
             </div>
           </div>
 
           {/* Flip Back Button */}
-          <div className="relative z-10 flex justify-end" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="relative z-10 flex justify-end"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Button
               variant="outline"
               size="sm"

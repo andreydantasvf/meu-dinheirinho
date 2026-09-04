@@ -21,7 +21,12 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'favicon-32x32.png', 'icon-180.png', 'logo.png'],
+      includeAssets: [
+        'favicon.ico',
+        'favicon-32x32.png',
+        'icon-180.png',
+        'logo.png',
+      ],
       // No runtimeCaching rules on purpose: the backend lives on a different origin
       // (VITE_API_URL), so the generated service worker only precaches this app's own
       // static assets — API responses (account balances, transactions) are never cached

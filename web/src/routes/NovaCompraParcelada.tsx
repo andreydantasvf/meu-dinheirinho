@@ -22,7 +22,11 @@ import { ApiError } from '@/lib/api';
 import { apiStringToCents, centsToApiString, formatMoney } from '@/lib/money';
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
-import { useCreatePurchase, usePurchase, useUpdatePurchase } from '@/hooks/use-purchases';
+import {
+  useCreatePurchase,
+  usePurchase,
+  useUpdatePurchase,
+} from '@/hooks/use-purchases';
 import { useCreateFixedExpense } from '@/hooks/use-fixed-expenses';
 import type { Purchase } from '@/types/entities';
 
@@ -90,7 +94,8 @@ export default function NovaCompraParcelada() {
   const isSubscription = watch('isSubscription');
   const despesaCategories =
     categories?.filter((category) => category.tipo === 'DESPESA') ?? [];
-  const creditCards = accounts?.filter((account) => account.tipo === 'CARTAO_CREDITO') ?? [];
+  const creditCards =
+    accounts?.filter((account) => account.tipo === 'CARTAO_CREDITO') ?? [];
 
   const preview = buildInstallmentPreview(valorTotal, numeroParcelas);
 
@@ -123,13 +128,17 @@ export default function NovaCompraParcelada() {
   if (isEditing && isLoadingPurchase) {
     return (
       <ModalRoute title="Compra parcelada">
-        <p className="py-8 text-center text-sm font-medium text-muted-foreground">Carregando...</p>
+        <p className="py-8 text-center text-sm font-medium text-muted-foreground">
+          Carregando...
+        </p>
       </ModalRoute>
     );
   }
 
   return (
-    <ModalRoute title={isEditing ? "Editar compra parcelada" : "Nova compra parcelada"}>
+    <ModalRoute
+      title={isEditing ? 'Editar compra parcelada' : 'Nova compra parcelada'}
+    >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
         {/* Hero Money Input */}
         <div className="flex flex-col items-center gap-1.5 py-3">
@@ -142,61 +151,70 @@ export default function NovaCompraParcelada() {
 
         {!isSubscription && (
           <>
-        {/* Installments Stepper Control */}
-        <div className="flex flex-col gap-2">
-          <label htmlFor="numeroParcelas" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-            Número de parcelas
-          </label>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setValue('numeroParcelas', Math.max(1, numeroParcelas - 1))}
-              className="flex size-12 items-center justify-center rounded-xl bg-card border border-border text-foreground hover:bg-foreground/10 active:scale-95 transition-all"
-            >
-              <IconMinus size={20} stroke={2.5} />
-            </button>
+            {/* Installments Stepper Control */}
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="numeroParcelas"
+                className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
+              >
+                Número de parcelas
+              </label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setValue('numeroParcelas', Math.max(1, numeroParcelas - 1))
+                  }
+                  className="flex size-12 items-center justify-center rounded-xl bg-card border border-border text-foreground hover:bg-foreground/10 active:scale-95 transition-all"
+                >
+                  <IconMinus size={20} stroke={2.5} />
+                </button>
 
-            <div className="flex flex-1 h-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/40 text-xl font-extrabold text-primary">
-              {numeroParcelas}×
+                <div className="flex flex-1 h-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/40 text-xl font-extrabold text-primary">
+                  {numeroParcelas}×
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setValue('numeroParcelas', numeroParcelas + 1)}
+                  className="flex size-12 items-center justify-center rounded-xl bg-card border border-border text-foreground hover:bg-foreground/10 active:scale-95 transition-all"
+                >
+                  <IconPlus size={20} stroke={2.5} />
+                </button>
+              </div>
+              <FieldError errors={[errors.numeroParcelas]} />
             </div>
 
-            <button
-              type="button"
-              onClick={() => setValue('numeroParcelas', numeroParcelas + 1)}
-              className="flex size-12 items-center justify-center rounded-xl bg-card border border-border text-foreground hover:bg-foreground/10 active:scale-95 transition-all"
-            >
-              <IconPlus size={20} stroke={2.5} />
-            </button>
-          </div>
-          <FieldError errors={[errors.numeroParcelas]} />
-        </div>
-
-        {/* Installments Live Preview Card */}
-        {preview && (
-          <div className="flex flex-col gap-2 rounded-2xl bg-primary/10 border border-primary/30 p-4 text-foreground">
-            <div className="flex items-baseline justify-between">
-              <span className="text-[11px] font-semibold tracking-wider text-primary uppercase">
-                Vai gerar
-              </span>
-              <span className="text-base font-extrabold text-foreground tabular-nums">
-                {preview.numeroParcelas} × {formatMoney(preview.installmentDisplay)}
-              </span>
-            </div>
-            {preview.lastDiffers && (
-              <p className="text-xs text-muted-foreground">
-                * Última parcela com ajuste de centavos: {formatMoney(preview.lastDisplay)}
-              </p>
+            {/* Installments Live Preview Card */}
+            {preview && (
+              <div className="flex flex-col gap-2 rounded-2xl bg-primary/10 border border-primary/30 p-4 text-foreground">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[11px] font-semibold tracking-wider text-primary uppercase">
+                    Vai gerar
+                  </span>
+                  <span className="text-base font-extrabold text-foreground tabular-nums">
+                    {preview.numeroParcelas} ×{' '}
+                    {formatMoney(preview.installmentDisplay)}
+                  </span>
+                </div>
+                {preview.lastDiffers && (
+                  <p className="text-xs text-muted-foreground">
+                    * Última parcela com ajuste de centavos:{' '}
+                    {formatMoney(preview.lastDisplay)}
+                  </p>
+                )}
+              </div>
             )}
-          </div>
-        )}
-
           </>
         )}
 
         <FieldGroup className="flex flex-col gap-4">
           {/* Description Input */}
           <Field className="flex flex-col gap-2">
-            <FieldLabel htmlFor="descricao" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+            <FieldLabel
+              htmlFor="descricao"
+              className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
+            >
               Descrição do produto/serviço
             </FieldLabel>
             <Input
@@ -210,7 +228,10 @@ export default function NovaCompraParcelada() {
 
           {/* Account Selector */}
           <Field className="flex flex-col gap-2">
-            <FieldLabel htmlFor="accountId" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+            <FieldLabel
+              htmlFor="accountId"
+              className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
+            >
               Cartão de crédito
             </FieldLabel>
             <ControlledSelect
@@ -227,7 +248,10 @@ export default function NovaCompraParcelada() {
 
           {/* Category Selector */}
           <Field className="flex flex-col gap-2">
-            <FieldLabel htmlFor="categoryId" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+            <FieldLabel
+              htmlFor="categoryId"
+              className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
+            >
               Categoria
             </FieldLabel>
             <ControlledSelect
@@ -244,7 +268,10 @@ export default function NovaCompraParcelada() {
 
           {/* Purchase Date */}
           <Field className="flex flex-col gap-2">
-            <FieldLabel htmlFor="dataCompra" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+            <FieldLabel
+              htmlFor="dataCompra"
+              className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
+            >
               Data da 1ª parcela
             </FieldLabel>
             <ControlledDatePicker control={control} name="dataCompra" />
@@ -255,8 +282,12 @@ export default function NovaCompraParcelada() {
         {!isEditing && (
           <label className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-foreground/5 cursor-pointer transition-colors">
             <div className="flex flex-1 flex-col">
-              <span className="text-sm font-bold text-foreground">É uma assinatura?</span>
-              <span className="text-xs text-muted-foreground">Valor fixo todo mês sem limite de parcelas</span>
+              <span className="text-sm font-bold text-foreground">
+                É uma assinatura?
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Valor fixo todo mês sem limite de parcelas
+              </span>
             </div>
             <input
               type="checkbox"
@@ -273,7 +304,11 @@ export default function NovaCompraParcelada() {
         >
           {isSubmitting
             ? 'Salvando parcelas...'
-            : isSubscription ? 'Criar assinatura' : isEditing ? `Atualizar ${numeroParcelas} lançamentos` : `Criar ${numeroParcelas} lançamentos`}
+            : isSubscription
+              ? 'Criar assinatura'
+              : isEditing
+                ? `Atualizar ${numeroParcelas} lançamentos`
+                : `Criar ${numeroParcelas} lançamentos`}
         </Button>
       </form>
     </ModalRoute>

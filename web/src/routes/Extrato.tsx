@@ -85,7 +85,9 @@ export default function Extrato() {
   }, [rawTransactions, tipoFilter]);
 
   const groups = useMemo(() => {
-    const sorted = [...transactions].sort((a, b) => b.data.localeCompare(a.data));
+    const sorted = [...transactions].sort((a, b) =>
+      b.data.localeCompare(a.data),
+    );
     const byDay = new Map<string, Transaction[]>();
     for (const transaction of sorted) {
       const day = transaction.data.slice(0, 10);
@@ -274,7 +276,13 @@ export default function Extrato() {
                   transaction={transaction}
                   category={categoryMap.get(transaction.categoryId)}
                   account={accountMap.get(transaction.accountId)}
-                  onEdit={() => navigate(transaction.purchaseId ? `/compras/${transaction.purchaseId}` : `/transacoes/${transaction.id}`)}
+                  onEdit={() =>
+                    navigate(
+                      transaction.purchaseId
+                        ? `/compras/${transaction.purchaseId}`
+                        : `/transacoes/${transaction.id}`,
+                    )
+                  }
                   onDelete={() => setDeleting(transaction)}
                 />
               ))}

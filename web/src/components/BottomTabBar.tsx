@@ -94,7 +94,10 @@ export function BottomTabBar() {
 
       {/* Quick Action Sheet */}
       <Sheet open={actionMenuOpen} onOpenChange={setActionMenuOpen}>
-        <SheetContent side="bottom" className="p-5 max-w-md mx-auto rounded-t-3xl">
+        <SheetContent
+          side="bottom"
+          className="p-5 max-w-md mx-auto rounded-t-3xl"
+        >
           <SheetHeader className="p-0 mb-4">
             <SheetTitle className="text-center text-lg font-bold">
               Novo Lançamento

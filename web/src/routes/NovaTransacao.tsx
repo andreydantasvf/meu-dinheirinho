@@ -12,7 +12,9 @@ export default function NovaTransacao() {
   if (isEditing && isLoadingTransaction) {
     return (
       <ModalRoute title="Transação">
-        <p className="py-8 text-center text-sm font-medium text-muted-foreground">Carregando...</p>
+        <p className="py-8 text-center text-sm font-medium text-muted-foreground">
+          Carregando...
+        </p>
       </ModalRoute>
     );
   }

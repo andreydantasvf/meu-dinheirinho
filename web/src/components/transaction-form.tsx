@@ -32,7 +32,9 @@ import type { Transaction } from '@/types/entities';
 
 const transactionSchema = z.object({
   tipo: z.enum(['DESPESA', 'RECEITA']),
-  valor: z.string().refine((value) => Number(value) > 0, 'Informe um valor maior que zero'),
+  valor: z
+    .string()
+    .refine((value) => Number(value) > 0, 'Informe um valor maior que zero'),
   categoryId: z.string().min(1, 'Selecione uma categoria'),
   accountId: z.string().min(1, 'Selecione uma conta'),
   descricao: z.string().trim().min(1, 'Informe uma descrição'),
@@ -130,7 +132,8 @@ export function TransactionForm({
     <ModalRoute title={isEditing ? 'Editar transação' : 'Nova transação'}>
       {isLocked && (
         <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-300">
-          Esta transação faz parte de uma compra parcelada e não pode ser editada diretamente.
+          Esta transação faz parte de uma compra parcelada e não pode ser
+          editada diretamente.
         </div>
       )}
 
@@ -162,7 +165,9 @@ export function TransactionForm({
                     <button
                       key={cat.id}
                       type="button"
-                      onClick={() => setValue('categoryId', cat.id, { shouldValidate: true })}
+                      onClick={() =>
+                        setValue('categoryId', cat.id, { shouldValidate: true })
+                      }
                       className={cn(
                         'flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold transition-all',
                         isSelected
@@ -170,7 +175,13 @@ export function TransactionForm({
                           : 'bg-foreground/5 border border-border text-muted-foreground hover:bg-foreground/10',
                       )}
                     >
-                      <CategoryIcon name={cat.nome} icon={cat.icone} color={cat.cor} size={14} className="size-5 rounded-lg" />
+                      <CategoryIcon
+                        name={cat.nome}
+                        icon={cat.icone}
+                        color={cat.cor}
+                        size={14}
+                        className="size-5 rounded-lg"
+                      />
                       <span>{cat.nome}</span>
                     </button>
                   );
@@ -200,17 +211,22 @@ export function TransactionForm({
                 control={control}
                 name="accountId"
                 placeholder="Selecione a conta de origem"
-                options={(accounts ?? []).filter(a => a.tipo !== 'CARTAO_CREDITO').map((account) => ({
-                  value: account.id,
-                  label: account.nome,
-                }))}
+                options={(accounts ?? [])
+                  .filter((a) => a.tipo !== 'CARTAO_CREDITO')
+                  .map((account) => ({
+                    value: account.id,
+                    label: account.nome,
+                  }))}
               />
               <FieldError errors={[errors.accountId]} />
             </Field>
 
             {/* Description Input */}
             <Field className="flex flex-col gap-2">
-              <FieldLabel htmlFor="descricao" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+              <FieldLabel
+                htmlFor="descricao"
+                className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
+              >
                 Descrição
               </FieldLabel>
               <Input
@@ -224,7 +240,10 @@ export function TransactionForm({
 
             {/* Date Picker */}
             <Field className="flex flex-col gap-2">
-              <FieldLabel htmlFor="data" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+              <FieldLabel
+                htmlFor="data"
+                className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
+              >
                 Data
               </FieldLabel>
               <ControlledDatePicker control={control} name="data" />
@@ -232,19 +251,23 @@ export function TransactionForm({
             </Field>
           </FieldGroup>
 
-            {!isEditing && tipo === 'DESPESA' && (
-              <label className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-foreground/5 cursor-pointer transition-colors">
-                <div className="flex flex-1 flex-col">
-                  <span className="text-sm font-bold text-foreground">Despesa fixa (mensal)</span>
-                  <span className="text-xs text-muted-foreground">Repete todo mês neste mesmo dia</span>
-                </div>
-                <input
-                  type="checkbox"
-                  className="size-5 rounded border-border text-primary focus:ring-primary/20 bg-background"
-                  {...register('isFixedExpense')}
-                />
-              </label>
-            )}
+          {!isEditing && tipo === 'DESPESA' && (
+            <label className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-foreground/5 cursor-pointer transition-colors">
+              <div className="flex flex-1 flex-col">
+                <span className="text-sm font-bold text-foreground">
+                  Despesa fixa (mensal)
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Repete todo mês neste mesmo dia
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                className="size-5 rounded border-border text-primary focus:ring-primary/20 bg-background"
+                {...register('isFixedExpense')}
+              />
+            </label>
+          )}
 
           <Button
             type="submit"

@@ -91,9 +91,7 @@ export function CategoryFormDialog({
     const payload = {
       ...values,
       metaMensal:
-        isDespesa && Number(values.metaMensal) > 0
-          ? values.metaMensal
-          : null,
+        isDespesa && Number(values.metaMensal) > 0 ? values.metaMensal : null,
     };
     try {
       if (isEditing && category) {
@@ -183,5 +181,3 @@ export function CategoryFormDialog({
     </Dialog>
   );
 }
-
-

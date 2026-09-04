@@ -27,12 +27,14 @@ import { ApiError } from '@/lib/api';
 import { useCreateAccount, useUpdateAccount } from '@/hooks/use-accounts';
 import { accountTypeLabels } from '@/types/entities';
 import type { Account, AccountType } from '@/types/entities';
-import {
-  getCardColorId,
-  setCardColorId,
-} from '@/lib/card-colors';
+import { getCardColorId, setCardColorId } from '@/lib/card-colors';
 
-const dayField = z.number().int().min(1, 'Entre 1 e 31').max(31, 'Entre 1 e 31').optional();
+const dayField = z
+  .number()
+  .int()
+  .min(1, 'Entre 1 e 31')
+  .max(31, 'Entre 1 e 31')
+  .optional();
 
 function toOptionalDay(value: string): number | undefined {
   return value === '' ? undefined : Number(value);
@@ -149,7 +151,11 @@ export function AccountFormDialog({
           <FieldGroup className="gap-4">
             <Field>
               <FieldLabel htmlFor="nome">Nome</FieldLabel>
-              <Input id="nome" placeholder="Nubank, Itaú, Inter..." {...register('nome')} />
+              <Input
+                id="nome"
+                placeholder="Nubank, Itaú, Inter..."
+                {...register('nome')}
+              />
               <FieldError errors={[errors.nome]} />
             </Field>
 
@@ -158,10 +164,12 @@ export function AccountFormDialog({
               <ControlledSelect
                 control={control}
                 name="tipo"
-                options={(Object.keys(accountTypeLabels) as AccountType[]).map((value) => ({
-                  value,
-                  label: accountTypeLabels[value],
-                }))}
+                options={(Object.keys(accountTypeLabels) as AccountType[]).map(
+                  (value) => ({
+                    value,
+                    label: accountTypeLabels[value],
+                  }),
+                )}
               />
             </Field>
 
@@ -187,7 +195,9 @@ export function AccountFormDialog({
                       min={1}
                       max={31}
                       placeholder="Dia ex: 5"
-                      {...register('diaFechamento', { setValueAs: toOptionalDay })}
+                      {...register('diaFechamento', {
+                        setValueAs: toOptionalDay,
+                      })}
                     />
                     <FieldError errors={[errors.diaFechamento]} />
                   </Field>
@@ -200,7 +210,9 @@ export function AccountFormDialog({
                       min={1}
                       max={31}
                       placeholder="Dia ex: 10"
-                      {...register('diaVencimento', { setValueAs: toOptionalDay })}
+                      {...register('diaVencimento', {
+                        setValueAs: toOptionalDay,
+                      })}
                     />
                     <FieldError errors={[errors.diaVencimento]} />
                   </Field>
@@ -210,7 +222,11 @@ export function AccountFormDialog({
           </FieldGroup>
 
           <DialogFooter className="mt-6">
-            <Button type="submit" disabled={isSubmitting} className="w-full font-bold">
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full font-bold"
+            >
               Salvar
             </Button>
           </DialogFooter>
@@ -219,5 +235,3 @@ export function AccountFormDialog({
     </Dialog>
   );
 }
-
-

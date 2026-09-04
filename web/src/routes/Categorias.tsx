@@ -76,7 +76,9 @@ export default function Categorias() {
     <div className="flex flex-col gap-5 p-4">
       {/* Top Bar with Add Button */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold tracking-tight text-foreground">Categorias</h2>
+        <h2 className="text-xl font-bold tracking-tight text-foreground">
+          Categorias
+        </h2>
         <Button
           onClick={openCreate}
           size="sm"
@@ -132,7 +134,8 @@ export default function Categorias() {
         <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-8 text-center">
           <IconTag size={36} className="text-muted-foreground mb-3" />
           <p className="text-sm font-medium text-muted-foreground mb-4">
-            Nenhuma categoria de {activeTab === 'DESPESA' ? 'despesa' : 'receita'} cadastrada.
+            Nenhuma categoria de{' '}
+            {activeTab === 'DESPESA' ? 'despesa' : 'receita'} cadastrada.
           </p>
           <Button
             onClick={openCreate}
@@ -145,79 +148,83 @@ export default function Categorias() {
 
       {/* Category List */}
       {currentCategories.length > 0 && (
-        <div className="flex flex-col rounded-3xl border border-border bg-card overflow-hidden">
+        <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-0 md:gap-4 md:bg-transparent md:border-none md:rounded-none bg-card border border-border rounded-3xl overflow-hidden md:overflow-visible">
           {currentCategories.map((category) => {
             const gasto = gastoMap.get(category.id) ?? 0;
-            const meta = category.metaMensal ? Number(category.metaMensal) : null;
+            const meta = category.metaMensal
+              ? Number(category.metaMensal)
+              : null;
             const overBudget = meta !== null && gasto > meta;
 
             return (
-            <div
-              key={category.id}
-              className="flex items-center justify-between border-b border-border p-4 last:border-b-0"
-            >
-              <div className="flex items-center gap-3">
-                <CategoryIcon
-                  name={category.nome}
-                  icon={category.icone}
-                  color={category.cor}
-                  size={20}
-                  className="size-11 rounded-2xl"
-                />
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-foreground">
-                    {category.nome}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {category.tipo === 'DESPESA' ? 'Despesa' : 'Receita'}
-                  </span>
-                  {activeTab === 'DESPESA' && meta !== null && (
-                    <div className="mt-1.5 flex w-40 flex-col gap-1">
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/5">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${Math.min(100, (gasto / meta) * 100)}%`,
-                            backgroundColor: overBudget
-                              ? 'var(--destructive)'
-                              : category.cor || 'var(--primary)',
-                          }}
-                        />
+              <div
+                key={category.id}
+                className="flex items-center justify-between border-b border-border p-4 last:border-b-0 md:rounded-3xl md:border md:bg-card md:p-5"
+              >
+                <div className="flex items-center gap-3">
+                  <CategoryIcon
+                    name={category.nome}
+                    icon={category.icone}
+                    color={category.cor}
+                    size={20}
+                    className="size-11 rounded-2xl"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-foreground">
+                      {category.nome}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {category.tipo === 'DESPESA' ? 'Despesa' : 'Receita'}
+                    </span>
+                    {activeTab === 'DESPESA' && meta !== null && (
+                      <div className="mt-1.5 flex w-40 flex-col gap-1">
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/5">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${Math.min(100, (gasto / meta) * 100)}%`,
+                              backgroundColor: overBudget
+                                ? 'var(--destructive)'
+                                : category.cor || 'var(--primary)',
+                            }}
+                          />
+                        </div>
+                        <span
+                          className={cn(
+                            'text-[10px] font-medium tabular-nums',
+                            overBudget
+                              ? 'text-destructive'
+                              : 'text-muted-foreground',
+                          )}
+                        >
+                          {formatMoney(gasto)} / {formatMoney(meta)}
+                        </span>
                       </div>
-                      <span
-                        className={cn(
-                          'text-[10px] font-medium tabular-nums',
-                          overBudget ? 'text-destructive' : 'text-muted-foreground',
-                        )}
-                      >
-                        {formatMoney(gasto)} / {formatMoney(meta)}
-                      </span>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Editar categoria"
+                    onClick={() => openEdit(category)}
+                    className="size-8 rounded-xl text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+                  >
+                    <IconPencil size={16} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Excluir categoria"
+                    onClick={() => setDeleting(category)}
+                    className="size-8 rounded-xl text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
+                  >
+                    <IconTrash size={16} />
+                  </Button>
                 </div>
               </div>
-
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Editar categoria"
-                  onClick={() => openEdit(category)}
-                  className="size-8 rounded-xl text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
-                >
-                  <IconPencil size={16} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Excluir categoria"
-                  onClick={() => setDeleting(category)}
-                  className="size-8 rounded-xl text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
-                >
-                  <IconTrash size={16} />
-                </Button>
-              </div>
-            </div>
             );
           })}
         </div>

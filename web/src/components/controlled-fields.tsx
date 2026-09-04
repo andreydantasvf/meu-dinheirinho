@@ -39,13 +39,13 @@ export function ControlledHeroMoneyInput<T extends FieldValues>({
 }) {
   const { field } = useController({ control, name });
   return (
-    <div className="flex items-baseline justify-center gap-1 max-w-full">
-      <span className="text-2xl font-bold text-muted-foreground">R$</span>
+    <div className="flex items-baseline justify-center gap-1 md:gap-3 w-full px-4">
+      <span className="text-2xl md:text-5xl font-bold text-muted-foreground shrink-0">R$</span>
       <MoneyInput
         id={name}
         value={field.value}
         onChange={field.onChange}
-        className="h-auto border-none bg-transparent p-0 text-primary text-4xl font-extrabold tracking-tight tabular-nums focus-visible:ring-0 w-auto text-center"
+        className="h-auto border-none bg-transparent p-0 text-primary text-5xl md:text-5xl font-extrabold tracking-tight tabular-nums focus-visible:ring-0 w-full text-center"
       />
     </div>
   );
@@ -60,11 +60,7 @@ export function ControlledDatePicker<T extends FieldValues>({
 }) {
   const { field } = useController({ control, name });
   return (
-    <DatePickerField
-      id={name}
-      value={field.value}
-      onChange={field.onChange}
-    />
+    <DatePickerField id={name} value={field.value} onChange={field.onChange} />
   );
 }
 
@@ -85,7 +81,10 @@ export function ControlledSelect<T extends FieldValues>({
   )?.label;
   return (
     <Select value={field.value} onValueChange={field.onChange}>
-      <SelectTrigger id={name} className="w-full h-12 rounded-xl border-border bg-card text-sm text-foreground">
+      <SelectTrigger
+        id={name}
+        className="w-full h-12 rounded-xl border-border bg-card text-sm text-foreground"
+      >
         <SelectValue placeholder={placeholder}>{selectedLabel}</SelectValue>
       </SelectTrigger>
       <SelectContent>

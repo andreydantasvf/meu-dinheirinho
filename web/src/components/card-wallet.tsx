@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  IconChevronLeft,
-  IconChevronRight,
-} from '@tabler/icons-react';
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { CardFace } from '@/components/card-face';
 import { cn } from '@/lib/utils';
@@ -39,10 +36,12 @@ export function CardWallet({
   useEffect(() => {
     const handleColorChange = () => setColorTick((t) => t + 1);
     window.addEventListener('card-colors-changed', handleColorChange);
-    return () => window.removeEventListener('card-colors-changed', handleColorChange);
+    return () =>
+      window.removeEventListener('card-colors-changed', handleColorChange);
   }, []);
 
-  const safeIndex = cards.length > 0 ? Math.min(activeIndex, cards.length - 1) : 0;
+  const safeIndex =
+    cards.length > 0 ? Math.min(activeIndex, cards.length - 1) : 0;
 
   // Sync focused card when activeIndex changes or cards list changes
   useEffect(() => {
@@ -111,10 +110,7 @@ export function CardWallet({
     const deltaTime = Math.max(1, Date.now() - dragStartRef.current.time);
     const velocityX = Math.abs(deltaX) / deltaTime;
 
-    if (
-      Math.abs(deltaX) > SWIPE_THRESHOLD ||
-      velocityX > VELOCITY_THRESHOLD
-    ) {
+    if (Math.abs(deltaX) > SWIPE_THRESHOLD || velocityX > VELOCITY_THRESHOLD) {
       // Trigger card swap!
       const dir = deltaX > 0 ? 1 : -1;
       setDismissingDir(dir);
@@ -289,5 +285,3 @@ export function CardWallet({
     </div>
   );
 }
-
-
