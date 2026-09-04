@@ -14,6 +14,7 @@ import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
 import { CategoryIcon } from '@/components/category-icon';
 import { CategoryChart } from '@/components/category-chart';
+import { ExpenseTypeChart, CardUsageChart } from '@/components/desktop-charts';
 import { formatMoney } from '@/lib/money';
 import { currentMonth, formatMonthLabel, shiftMonth } from '@/lib/date';
 import { cn } from '@/lib/utils';
@@ -71,7 +72,7 @@ export default function Home() {
   }, [transactions]);
 
   return (
-    <div className="flex flex-col gap-5 p-4 md:grid md:grid-cols-2 lg:grid-cols-3">
+    <div className="flex flex-col gap-5 p-4 md:grid md:grid-cols-2">
       {userName && (
         <div className="col-span-full mb-[-12px]">
           <p className="text-sm text-muted-foreground">Olá, {userName}</p>
@@ -118,7 +119,7 @@ export default function Home() {
       {dashboard && (
         <>
           {/* Hero Card - Saldo do Mês */}
-          <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card to-popover p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4)] md:col-span-2 lg:col-span-3 lg:flex lg:items-center lg:justify-between lg:gap-8">
+          <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card to-popover p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4)] md:col-span-2 lg:flex lg:items-center lg:justify-between lg:gap-8">
             <div className="flex-1">
               <div className="flex items-center justify-between lg:justify-start lg:gap-4">
                 <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
@@ -165,21 +166,38 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Chart Widget (Desktop Only or always visible) */}
-          <div className="hidden lg:block rounded-3xl border border-border bg-card p-5 h-full">
-            <div className="mb-4 flex items-center justify-between">
-              <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
-                Resumo de Despesas
-              </span>
+          {/* Desktop Charts Area */}
+          <div className="hidden md:grid md:grid-cols-2 gap-5 md:col-span-2">
+            <div className="rounded-3xl border border-border bg-card p-5">
+              <div className="mb-4">
+                <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+                  Despesas por Categoria
+                </span>
+              </div>
+              <CategoryChart data={gastoPorCategoria} categories={categories ?? []} />
             </div>
-            <CategoryChart
-              data={gastoPorCategoria}
-              categories={categories ?? []}
-            />
+
+            <div className="rounded-3xl border border-border bg-card p-5">
+              <div className="mb-4">
+                <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+                  Tipos de Despesa
+                </span>
+              </div>
+              <ExpenseTypeChart transactions={transactions ?? []} />
+            </div>
+
+            <div className="rounded-3xl border border-border bg-card p-5 md:col-span-2">
+              <div className="mb-4">
+                <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+                  Faturas de Cartão
+                </span>
+              </div>
+              <CardUsageChart faturas={dashboard.faturaAtualPorCartao} />
+            </div>
           </div>
 
           {/* Gasto por Categoria Widget */}
-          <div className="rounded-3xl border border-border bg-card p-5 lg:col-span-1 h-full">
+          <div className="rounded-3xl border border-border bg-card p-5 md:col-span-1 h-full">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
                 Gasto por categoria

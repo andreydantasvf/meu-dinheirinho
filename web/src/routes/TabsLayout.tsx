@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { BottomTabBar } from '../components/BottomTabBar';
 import { AppHeader } from '../components/AppHeader';
 import { DesktopSidebar } from '../components/desktop-sidebar';
+import { DesktopFab } from '../components/desktop-fab';
 
 export default function TabsLayout() {
   return (
@@ -11,13 +12,14 @@ export default function TabsLayout() {
         <div className="md:hidden">
           <AppHeader />
         </div>
-        <main className="flex-1 pb-28 md:pb-8 md:pt-8 px-4">
+        <main className="flex-1 pb-28 md:pb-8 md:pt-8 px-4 relative">
           <Outlet />
         </main>
         <div className="md:hidden">
           <BottomTabBar />
         </div>
       </div>
+      <DesktopFab />
     </div>
   );
 }
