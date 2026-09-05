@@ -1,6 +1,14 @@
+import { useState } from 'react';
 import { useCreateFixedExpense } from '@/hooks/use-fixed-expenses';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import type {
+  Control,
+  FieldErrors,
+  Path,
+  UseFormRegister,
+  UseFormSetValue,
+} from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -28,10 +36,9 @@ import {
   useCreateTransaction,
   useUpdateTransaction,
 } from '@/hooks/use-transactions';
-import type { Transaction } from '@/types/entities';
+import type { Account, Category, Transaction, TransactionType } from '@/types/entities';
 
-const transactionSchema = z.object({
-  tipo: z.enum(['DESPESA', 'RECEITA']),
+const commonFieldsSchema = {
   valor: z
     .string()
     .refine((value) => Number(value) > 0, 'Informe um valor maior que zero'),
@@ -39,13 +46,20 @@ const transactionSchema = z.object({
   accountId: z.string().min(1, 'Selecione uma conta'),
   descricao: z.string().trim().min(1, 'Informe uma descrição'),
   data: z.string().min(1, 'Selecione uma data'),
+};
+
+const despesaSchema = z.object({
+  ...commonFieldsSchema,
   isFixedExpense: z.boolean().optional(),
 });
 
-type TransactionFormValues = z.infer<typeof transactionSchema>;
+const receitaSchema = z.object(commonFieldsSchema);
 
-const emptyValues: TransactionFormValues = {
-  tipo: 'DESPESA',
+type CommonFormValues = z.infer<z.ZodObject<typeof commonFieldsSchema>>;
+type DespesaFormValues = z.infer<typeof despesaSchema>;
+type ReceitaFormValues = z.infer<typeof receitaSchema>;
+
+const emptyDespesaValues: DespesaFormValues = {
   valor: '0.00',
   categoryId: '',
   accountId: '',
@@ -54,26 +68,175 @@ const emptyValues: TransactionFormValues = {
   isFixedExpense: false,
 };
 
-function toFormValues(transaction: Transaction): TransactionFormValues {
+const emptyReceitaValues: ReceitaFormValues = {
+  valor: '0.00',
+  categoryId: '',
+  accountId: '',
+  descricao: '',
+  data: new Date().toISOString(),
+};
+
+function toCommonValues(transaction: Transaction): CommonFormValues {
   return {
-    tipo: transaction.tipo,
     valor: transaction.valor,
     categoryId: transaction.categoryId,
     accountId: transaction.accountId,
     descricao: transaction.descricao,
     data: transaction.data,
-    isFixedExpense: false,
   };
 }
 
-export function TransactionForm({
+// Only prefills from `transaction` when it actually matches this form's type —
+// switching type on an existing transaction starts that type's fields fresh
+// instead of carrying over a category/account that belongs to the other type.
+function despesaDefaults(transaction: Transaction | undefined): DespesaFormValues {
+  if (transaction?.tipo === 'DESPESA') {
+    return { ...toCommonValues(transaction), isFixedExpense: false };
+  }
+  return emptyDespesaValues;
+}
+
+function receitaDefaults(transaction: Transaction | undefined): ReceitaFormValues {
+  if (transaction?.tipo === 'RECEITA') {
+    return toCommonValues(transaction);
+  }
+  return emptyReceitaValues;
+}
+
+function TransactionCommonFields<T extends CommonFormValues>({
+  control,
+  register,
+  errors,
+  setValue,
+  categories,
+  categoryTipo,
+  accounts,
+  selectedCategoryId,
+}: {
+  control: Control<T>;
+  register: UseFormRegister<T>;
+  errors: FieldErrors<T>;
+  setValue: UseFormSetValue<T>;
+  categories: Category[] | undefined;
+  categoryTipo: TransactionType;
+  accounts: Account[] | undefined;
+  selectedCategoryId: string;
+}) {
+  const filteredCategories =
+    categories?.filter((category) => category.tipo === categoryTipo) ?? [];
+
+  return (
+    <FieldGroup className="flex flex-col gap-4">
+      {/* Category Quick Pills */}
+      <Field className="flex flex-col gap-2">
+        <FieldLabel className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+          Categoria
+        </FieldLabel>
+
+        <div className="flex flex-wrap gap-2">
+          {filteredCategories.map((cat) => {
+            const isSelected = selectedCategoryId === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() =>
+                  setValue('categoryId' as Path<T>, cat.id as never, {
+                    shouldValidate: true,
+                  })
+                }
+                className={cn(
+                  'flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold transition-all',
+                  isSelected
+                    ? 'bg-primary/15 border border-primary text-primary shadow-[0_0_12px_rgba(0,200,255,0.2)]'
+                    : 'bg-foreground/5 border border-border text-muted-foreground hover:bg-foreground/10',
+                )}
+              >
+                <CategoryIcon
+                  name={cat.nome}
+                  icon={cat.icone}
+                  color={cat.cor}
+                  size={14}
+                  className="size-5 rounded-lg"
+                />
+                <span>{cat.nome}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {filteredCategories.length === 0 && (
+          <ControlledSelect
+            control={control}
+            name={'categoryId' as Path<T>}
+            placeholder="Selecione uma categoria"
+            options={[]}
+          />
+        )}
+        <FieldError errors={[errors.categoryId as { message?: string }]} />
+      </Field>
+
+      {/* Account Selector */}
+      <Field className="flex flex-col gap-2">
+        <FieldLabel className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+          Conta
+        </FieldLabel>
+        <ControlledSelect
+          control={control}
+          name={'accountId' as Path<T>}
+          placeholder="Selecione a conta de origem"
+          options={(accounts ?? [])
+            .filter((a) => a.tipo !== 'CARTAO_CREDITO')
+            .map((account) => ({
+              value: account.id,
+              label: account.nome,
+            }))}
+        />
+        <FieldError errors={[errors.accountId as { message?: string }]} />
+      </Field>
+
+      {/* Description Input */}
+      <Field className="flex flex-col gap-2">
+        <FieldLabel
+          htmlFor="descricao"
+          className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
+        >
+          Descrição
+        </FieldLabel>
+        <Input
+          id="descricao"
+          placeholder="Ex: Mercado Bom Preço"
+          className="h-12 rounded-xl border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground"
+          {...register('descricao' as Path<T>)}
+        />
+        <FieldError errors={[errors.descricao as { message?: string }]} />
+      </Field>
+
+      {/* Date Picker */}
+      <Field className="flex flex-col gap-2">
+        <FieldLabel
+          htmlFor="data"
+          className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
+        >
+          Data
+        </FieldLabel>
+        <ControlledDatePicker control={control} name={'data' as Path<T>} />
+        <FieldError errors={[errors.data as { message?: string }]} />
+      </Field>
+    </FieldGroup>
+  );
+}
+
+function DespesaForm({
   transaction,
   isEditing,
   id,
+  isLocked,
 }: {
   transaction: Transaction | undefined;
   isEditing: boolean;
   id: string | undefined;
+  isLocked: boolean;
 }) {
   const navigate = useNavigate();
   const { data: categories } = useCategories();
@@ -82,8 +245,6 @@ export function TransactionForm({
   const createFixedExpense = useCreateFixedExpense();
   const updateTransaction = useUpdateTransaction();
 
-  const isLocked = Boolean(transaction?.purchaseId);
-
   const {
     register,
     handleSubmit,
@@ -91,15 +252,19 @@ export function TransactionForm({
     watch,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<TransactionFormValues>({
-    resolver: zodResolver(transactionSchema),
-    defaultValues: transaction ? toFormValues(transaction) : emptyValues,
+  } = useForm<DespesaFormValues>({
+    resolver: zodResolver(despesaSchema),
+    defaultValues: despesaDefaults(transaction),
+    // `transaction` can still be undefined on the render that first mounts this
+    // form (e.g. React 18 Strict Mode's dev-only double-invoke racing the
+    // query). `values` keeps the form in sync once the real data lands,
+    // instead of leaving it stuck on the empty defaultValues forever.
+    values: transaction ? despesaDefaults(transaction) : undefined,
   });
 
-  const tipo = watch('tipo');
   const selectedCategoryId = watch('categoryId');
 
-  async function onSubmit(values: TransactionFormValues) {
+  async function onSubmit(values: DespesaFormValues) {
     try {
       if (values.isFixedExpense && !isEditing) {
         await createFixedExpense.mutateAsync({
@@ -111,10 +276,10 @@ export function TransactionForm({
         });
         toast.success('Despesa fixa criada com sucesso');
       } else if (isEditing && id) {
-        await updateTransaction.mutateAsync({ id, ...values });
+        await updateTransaction.mutateAsync({ id, tipo: 'DESPESA', ...values });
         toast.success('Transação atualizada com sucesso');
       } else {
-        await createTransaction.mutateAsync(values);
+        await createTransaction.mutateAsync({ tipo: 'DESPESA', ...values });
         toast.success('Transação criada com sucesso');
       }
       navigate(-1);
@@ -125,8 +290,164 @@ export function TransactionForm({
     }
   }
 
-  const filteredCategories =
-    categories?.filter((category) => category.tipo === tipo) ?? [];
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <fieldset
+        disabled={isLocked}
+        className="flex flex-col gap-5 min-w-0 border-none p-0 m-0"
+      >
+        {/* Hero Money Input */}
+        <div className="flex flex-col items-center gap-1.5 py-4">
+          <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+            Valor
+          </span>
+          <ControlledHeroMoneyInput control={control} name="valor" />
+          <FieldError errors={[errors.valor]} />
+        </div>
+
+        <TransactionCommonFields
+          control={control}
+          register={register}
+          errors={errors}
+          setValue={setValue}
+          categories={categories}
+          categoryTipo="DESPESA"
+          accounts={accounts}
+          selectedCategoryId={selectedCategoryId}
+        />
+
+        {!isEditing && (
+          <label className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-foreground/5 cursor-pointer transition-colors">
+            <div className="flex flex-1 flex-col">
+              <span className="text-sm font-bold text-foreground">
+                Despesa fixa (mensal)
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Repete todo mês neste mesmo dia
+              </span>
+            </div>
+            <input
+              type="checkbox"
+              className="size-5 rounded border-border text-primary focus:ring-primary/20 bg-background"
+              {...register('isFixedExpense')}
+            />
+          </label>
+        )}
+
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="mt-4 h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
+        >
+          {isSubmitting ? 'Salvando...' : 'Salvar transação'}
+        </Button>
+      </fieldset>
+    </form>
+  );
+}
+
+function ReceitaForm({
+  transaction,
+  isEditing,
+  id,
+  isLocked,
+}: {
+  transaction: Transaction | undefined;
+  isEditing: boolean;
+  id: string | undefined;
+  isLocked: boolean;
+}) {
+  const navigate = useNavigate();
+  const { data: categories } = useCategories();
+  const { data: accounts } = useAccounts();
+  const createTransaction = useCreateTransaction();
+  const updateTransaction = useUpdateTransaction();
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<ReceitaFormValues>({
+    resolver: zodResolver(receitaSchema),
+    defaultValues: receitaDefaults(transaction),
+    // See the matching comment in DespesaForm: keeps the form synced if
+    // `transaction` is still undefined on the render that mounts this form.
+    values: transaction ? receitaDefaults(transaction) : undefined,
+  });
+
+  const selectedCategoryId = watch('categoryId');
+
+  async function onSubmit(values: ReceitaFormValues) {
+    try {
+      if (isEditing && id) {
+        await updateTransaction.mutateAsync({ id, tipo: 'RECEITA', ...values });
+        toast.success('Transação atualizada com sucesso');
+      } else {
+        await createTransaction.mutateAsync({ tipo: 'RECEITA', ...values });
+        toast.success('Transação criada com sucesso');
+      }
+      navigate(-1);
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : 'Não foi possível salvar',
+      );
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <fieldset
+        disabled={isLocked}
+        className="flex flex-col gap-5 min-w-0 border-none p-0 m-0"
+      >
+        {/* Hero Money Input */}
+        <div className="flex flex-col items-center gap-1.5 py-4">
+          <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+            Valor
+          </span>
+          <ControlledHeroMoneyInput control={control} name="valor" />
+          <FieldError errors={[errors.valor]} />
+        </div>
+
+        <TransactionCommonFields
+          control={control}
+          register={register}
+          errors={errors}
+          setValue={setValue}
+          categories={categories}
+          categoryTipo="RECEITA"
+          accounts={accounts}
+          selectedCategoryId={selectedCategoryId}
+        />
+
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="mt-4 h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
+        >
+          {isSubmitting ? 'Salvando...' : 'Salvar transação'}
+        </Button>
+      </fieldset>
+    </form>
+  );
+}
+
+export function TransactionForm({
+  transaction,
+  isEditing,
+  id,
+}: {
+  transaction: Transaction | undefined;
+  isEditing: boolean;
+  id: string | undefined;
+}) {
+  const [tipo, setTipo] = useState<TransactionType>(
+    transaction?.tipo ?? 'DESPESA',
+  );
+  const isLocked = Boolean(transaction?.purchaseId);
 
   return (
     <ModalRoute title={isEditing ? 'Editar transação' : 'Nova transação'}>
@@ -137,147 +458,31 @@ export function TransactionForm({
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <fieldset disabled={isLocked} className="flex flex-col gap-5 min-w-0 border-none p-0 m-0">
-          {/* Segmented Type Toggle */}
-          <TransactionTypeToggle control={control} name="tipo" />
+      <div className="mb-5">
+        <TransactionTypeToggle
+          value={tipo}
+          onChange={setTipo}
+          disabled={isLocked}
+        />
+      </div>
 
-          {/* Hero Money Input */}
-          <div className="flex flex-col items-center gap-1.5 py-4">
-            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
-              Valor
-            </span>
-            <ControlledHeroMoneyInput control={control} name="valor" />
-            <FieldError errors={[errors.valor]} />
-          </div>
-
-          <FieldGroup className="flex flex-col gap-4">
-            {/* Category Quick Pills */}
-            <Field className="flex flex-col gap-2">
-              <FieldLabel className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-                Categoria
-              </FieldLabel>
-
-              <div className="flex flex-wrap gap-2">
-                {filteredCategories.map((cat) => {
-                  const isSelected = selectedCategoryId === cat.id;
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() =>
-                        setValue('categoryId', cat.id, { shouldValidate: true })
-                      }
-                      className={cn(
-                        'flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold transition-all',
-                        isSelected
-                          ? 'bg-primary/15 border border-primary text-primary shadow-[0_0_12px_rgba(0,200,255,0.2)]'
-                          : 'bg-foreground/5 border border-border text-muted-foreground hover:bg-foreground/10',
-                      )}
-                    >
-                      <CategoryIcon
-                        name={cat.nome}
-                        icon={cat.icone}
-                        color={cat.cor}
-                        size={14}
-                        className="size-5 rounded-lg"
-                      />
-                      <span>{cat.nome}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {filteredCategories.length === 0 && (
-                <ControlledSelect
-                  control={control}
-                  name="categoryId"
-                  placeholder="Selecione uma categoria"
-                  options={filteredCategories.map((c) => ({
-                    value: c.id,
-                    label: c.nome,
-                  }))}
-                />
-              )}
-              <FieldError errors={[errors.categoryId]} />
-            </Field>
-
-            {/* Account Selector */}
-            <Field className="flex flex-col gap-2">
-              <FieldLabel className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-                Conta
-              </FieldLabel>
-              <ControlledSelect
-                control={control}
-                name="accountId"
-                placeholder="Selecione a conta de origem"
-                options={(accounts ?? [])
-                  .filter((a) => a.tipo !== 'CARTAO_CREDITO')
-                  .map((account) => ({
-                    value: account.id,
-                    label: account.nome,
-                  }))}
-              />
-              <FieldError errors={[errors.accountId]} />
-            </Field>
-
-            {/* Description Input */}
-            <Field className="flex flex-col gap-2">
-              <FieldLabel
-                htmlFor="descricao"
-                className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
-              >
-                Descrição
-              </FieldLabel>
-              <Input
-                id="descricao"
-                placeholder="Ex: Mercado Bom Preço"
-                className="h-12 rounded-xl border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground"
-                {...register('descricao')}
-              />
-              <FieldError errors={[errors.descricao]} />
-            </Field>
-
-            {/* Date Picker */}
-            <Field className="flex flex-col gap-2">
-              <FieldLabel
-                htmlFor="data"
-                className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
-              >
-                Data
-              </FieldLabel>
-              <ControlledDatePicker control={control} name="data" />
-              <FieldError errors={[errors.data]} />
-            </Field>
-          </FieldGroup>
-
-          {!isEditing && tipo === 'DESPESA' && (
-            <label className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-foreground/5 cursor-pointer transition-colors">
-              <div className="flex flex-1 flex-col">
-                <span className="text-sm font-bold text-foreground">
-                  Despesa fixa (mensal)
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Repete todo mês neste mesmo dia
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                className="size-5 rounded border-border text-primary focus:ring-primary/20 bg-background"
-                {...register('isFixedExpense')}
-              />
-            </label>
-          )}
-
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            className="mt-4 h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
-          >
-            {isSubmitting ? 'Salvando...' : 'Salvar transação'}
-          </Button>
-        </fieldset>
-      </form>
+      {tipo === 'DESPESA' ? (
+        <DespesaForm
+          key="despesa"
+          transaction={transaction}
+          isEditing={isEditing}
+          id={id}
+          isLocked={isLocked}
+        />
+      ) : (
+        <ReceitaForm
+          key="receita"
+          transaction={transaction}
+          isEditing={isEditing}
+          id={id}
+          isLocked={isLocked}
+        />
+      )}
     </ModalRoute>
   );
 }
