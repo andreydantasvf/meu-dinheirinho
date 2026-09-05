@@ -40,12 +40,12 @@ export function ControlledHeroMoneyInput<T extends FieldValues>({
   const { field } = useController({ control, name });
   return (
     <div className="flex items-baseline justify-center gap-1 md:gap-3 w-full px-4">
-      <span className="text-2xl md:text-5xl font-bold text-muted-foreground shrink-0">R$</span>
+      <span className="text-3xl md:text-5xl font-bold text-muted-foreground shrink-0">R$</span>
       <MoneyInput
         id={name}
         value={field.value}
         onChange={field.onChange}
-        className="h-auto border-none bg-transparent p-0 text-primary text-5xl md:text-5xl font-extrabold tracking-tight tabular-nums focus-visible:ring-0 w-full text-center"
+        className="h-auto border-none bg-transparent p-0 text-primary text-3xl md:text-5xl font-extrabold tracking-tight tabular-nums focus-visible:ring-0 w-full text-center"
       />
     </div>
   );

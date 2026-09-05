@@ -1,24 +1,24 @@
-import { useController } from 'react-hook-form';
-import type { Control, FieldValues, Path } from 'react-hook-form';
 import { cn } from '@/lib/utils';
+import type { TransactionType } from '@/types/entities';
 
-export function TransactionTypeToggle<T extends FieldValues>({
-  control,
-  name,
+export function TransactionTypeToggle({
+  value,
+  onChange,
+  disabled,
 }: {
-  control: Control<T>;
-  name: Path<T>;
+  value: TransactionType;
+  onChange: (value: TransactionType) => void;
+  disabled?: boolean;
 }) {
-  const { field } = useController({ control, name });
-
   return (
     <div className="flex rounded-2xl bg-foreground/5 p-1 border border-border">
       <button
         type="button"
-        onClick={() => field.onChange('DESPESA')}
+        disabled={disabled}
+        onClick={() => onChange('DESPESA')}
         className={cn(
-          'flex-1 rounded-xl py-2.5 text-xs font-bold transition-all text-center',
-          field.value === 'DESPESA'
+          'flex-1 rounded-xl py-2.5 text-xs font-bold transition-all text-center disabled:pointer-events-none disabled:opacity-50',
+          value === 'DESPESA'
             ? 'bg-primary text-primary-foreground shadow-[0_0_16px_rgba(0,200,255,0.3)]'
             : 'text-muted-foreground hover:text-foreground',
         )}
@@ -27,10 +27,11 @@ export function TransactionTypeToggle<T extends FieldValues>({
       </button>
       <button
         type="button"
-        onClick={() => field.onChange('RECEITA')}
+        disabled={disabled}
+        onClick={() => onChange('RECEITA')}
         className={cn(
-          'flex-1 rounded-xl py-2.5 text-xs font-bold transition-all text-center',
-          field.value === 'RECEITA'
+          'flex-1 rounded-xl py-2.5 text-xs font-bold transition-all text-center disabled:pointer-events-none disabled:opacity-50',
+          value === 'RECEITA'
             ? 'bg-success text-success-foreground shadow-[0_0_16px_rgba(34,211,160,0.3)]'
             : 'text-muted-foreground hover:text-foreground',
         )}
