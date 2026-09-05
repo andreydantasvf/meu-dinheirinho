@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { RequireAuth } from './components/RequireAuth';
 import { Toaster } from '@/components/ui/sonner';
+import { PwaUpdatePrompt } from './components/PwaUpdatePrompt';
 import Login from './routes/Login';
 import TabsLayout from './routes/TabsLayout';
 import Home from './routes/Home';
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster position="top-center" />
+      <PwaUpdatePrompt />
     </>
   );
 }
