@@ -1,4 +1,5 @@
 import { fixedExpenseRepository } from '../repositories/fixed-expense.repository';
+import { reminderRepository } from '../repositories/reminder.repository';
 import { AppError } from '../types/errors';
 import type { CreateFixedExpenseInput } from '../validators/fixed-expense.schema';
 import {
@@ -37,10 +38,14 @@ export const fixedExpenseService = {
     const todayUTC = new Date(
       Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
     );
-    return fixedExpenseRepository.cancelAndRemoveFutureTransactions(
-      id,
-      todayUTC,
-    );
+    const canceled =
+      await fixedExpenseRepository.cancelAndRemoveFutureTransactions(
+        id,
+        todayUTC,
+      );
+    // Lembretes ligados a um gasto fixo cancelado não fazem mais sentido.
+    await reminderRepository.deactivateByFixedExpense(id);
+    return canceled;
   },
 
   async ensureHorizon() {

@@ -11,6 +11,7 @@ export default defineConfig({
       WEBAUTHN_RP_ID: 'localhost',
       WEBAUTHN_RP_NAME: 'Meu Dinheirinho Test',
       WEBAUTHN_ORIGIN: 'http://localhost:5173',
+      REMINDERS_TZ: 'America/Sao_Paulo',
     },
   },
 });
