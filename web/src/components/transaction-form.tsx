@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useCreateFixedExpense } from '@/hooks/use-fixed-expenses';
-import { useCreateReminder } from '@/hooks/use-reminders';
-import { useNavigate } from 'react-router-dom';
+import { useCreateReminder, useReminders } from '@/hooks/use-reminders';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import type {
   Control,
@@ -151,11 +151,55 @@ function useCreateMonthlyReminder() {
   };
 }
 
+// Não existe FK transação → lembrete, então ao editar procura um lembrete que
+// "pertença" à transação: mesmo gasto fixo, ou mesmo título/tipo/dia (o que o
+// toggle teria criado). Evita oferecer criar um lembrete duplicado.
+function useExistingReminder(transaction: Transaction | undefined) {
+  const { data: reminders } = useReminders();
+  if (!transaction || !reminders) return undefined;
+  const tipo = transaction.tipo === 'RECEITA' ? 'ENTRADA' : 'SAIDA';
+  const dia = new Date(transaction.data).getDate();
+  return reminders.find(
+    (r) =>
+      (transaction.fixedExpenseId &&
+        r.fixedExpenseId === transaction.fixedExpenseId) ||
+      (r.recorrencia === 'MENSAL' &&
+        r.tipo === tipo &&
+        r.titulo === transaction.descricao &&
+        r.diaDoMes === dia),
+  );
+}
+
 function RememberMonthlyToggle({
   inputProps,
+  transaction,
 }: {
   inputProps: UseFormRegisterReturn;
+  transaction?: Transaction;
 }) {
+  const existing = useExistingReminder(transaction);
+
+  if (existing) {
+    return (
+      <Link
+        to="/lembretes"
+        className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-foreground/5 transition-colors"
+      >
+        <div className="flex flex-1 flex-col">
+          <span className="text-sm font-bold text-foreground">
+            Lembrete mensal ativo
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {existing.ativo
+              ? `Todo dia ${existing.diaDoMes ?? '—'} às ${existing.horario}`
+              : 'Pausado'}{' '}
+            · gerenciar em Lembretes
+          </span>
+        </div>
+      </Link>
+    );
+  }
+
   return (
     <label className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-foreground/5 cursor-pointer transition-colors">
       <div className="flex flex-1 flex-col">
@@ -359,6 +403,13 @@ function DespesaForm({
           ...transactionValues,
         });
         toast.success('Transação atualizada com sucesso');
+        if (lembrarTodoMes) {
+          await createMonthlyReminder(
+            values,
+            'DESPESA',
+            transaction?.fixedExpenseId ?? undefined,
+          );
+        }
       } else {
         await createTransaction.mutateAsync({
           tipo: 'DESPESA',
@@ -419,9 +470,10 @@ function DespesaForm({
           </label>
         )}
 
-        {!isEditing && (
-          <RememberMonthlyToggle inputProps={register('lembrarTodoMes')} />
-        )}
+        <RememberMonthlyToggle
+          inputProps={register('lembrarTodoMes')}
+          transaction={isEditing ? transaction : undefined}
+        />
 
         <Button
           type="submit"
@@ -480,6 +532,7 @@ function ReceitaForm({
           ...transactionValues,
         });
         toast.success('Transação atualizada com sucesso');
+        if (lembrarTodoMes) await createMonthlyReminder(values, 'RECEITA');
       } else {
         await createTransaction.mutateAsync({
           tipo: 'RECEITA',
@@ -522,9 +575,10 @@ function ReceitaForm({
           selectedCategoryId={selectedCategoryId}
         />
 
-        {!isEditing && (
-          <RememberMonthlyToggle inputProps={register('lembrarTodoMes')} />
-        )}
+        <RememberMonthlyToggle
+          inputProps={register('lembrarTodoMes')}
+          transaction={isEditing ? transaction : undefined}
+        />
 
         <Button
           type="submit"
