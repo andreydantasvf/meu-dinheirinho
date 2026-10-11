@@ -127,10 +127,13 @@ function createRng(seed: number): () => number {
 }
 
 // month pode sair de 0-11 (Date.UTC normaliza: -1 = dezembro do ano anterior); o dia é
-// limitado ao último dia do mês.
+// limitado ao último dia do mês. Meio-dia UTC: a UI exibe datas no fuso local, então
+// meia-noite UTC apareceria como o dia anterior em UTC-3.
 function isoDate(year: number, month: number, day: number): string {
   const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-  return new Date(Date.UTC(year, month, Math.min(day, lastDay))).toISOString();
+  return new Date(
+    Date.UTC(year, month, Math.min(day, lastDay), 12),
+  ).toISOString();
 }
 
 export function createSeed(hoje: Date): DemoDb {
