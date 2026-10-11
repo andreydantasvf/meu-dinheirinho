@@ -2,8 +2,13 @@ import Decimal from 'decimal.js';
 import { DemoHttpError, internalError, invalid } from '../errors';
 import type { DemoDb } from '../types';
 
+// crypto.randomUUID só existe em contexto seguro (HTTPS/localhost); abrir a demo pelo IP da
+// rede local (ex.: testar no iPhone) cai no fallback.
 export function newId(): string {
-  return crypto.randomUUID();
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
+    b.toString(16).padStart(2, '0'),
+  ).join('');
 }
 
 export function nowIso(): string {
