@@ -1,5 +1,7 @@
 import { accountRoutes } from './handlers/accounts';
 import { categoryRoutes } from './handlers/categories';
+import { fixedExpenseRoutes } from './handlers/fixed-expenses';
+import { purchaseRoutes } from './handlers/purchases';
 import { transactionRoutes } from './handlers/transactions';
 import type { Route } from './router';
 
@@ -8,4 +10,6 @@ export const routes: Route[] = [
   ...accountRoutes,
   ...categoryRoutes,
   ...transactionRoutes,
+  ...purchaseRoutes,
+  ...fixedExpenseRoutes,
 ];
