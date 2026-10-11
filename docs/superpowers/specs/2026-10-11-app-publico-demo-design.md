@@ -1,7 +1,7 @@
 # Spec: App público — pacote self-host + demo interativa sem backend
 
 - **Data**: 2026-10-11
-- **Status**: aprovado em brainstorming, aguardando plano de implementação
+- **Status**: implementado
 - **Branch**: `12-transformar-app-publico`
 - **Relacionado**: [`docs/web-architecture.md`](../../web-architecture.md), [`docs/api.md`](../../api.md), [`docs/deployment.md`](../../deployment.md)
 
@@ -58,13 +58,11 @@ Levantamento do estado atual (feito no brainstorming):
 
 ### 2. Arquitetura do modo demo
 
-**Flag**: `VITE_DEMO_MODE=true`. Um novo `web/src/lib/demo-mode.ts` exporta:
+**Flag**: o modo do Vite `demo` (`vite --mode demo`), garantidamente eliminado no build normal. Um novo `web/src/lib/demo-mode.ts` exporta:
 
 ```ts
-export const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
+export const IS_DEMO = import.meta.env.MODE === 'demo';
 ```
-
-Declarar `VITE_DEMO_MODE` em `vite-env.d.ts`.
 
 **Ponto de troca**: no início do `apiFetch` (`web/src/lib/api.ts`):
 
@@ -90,7 +88,7 @@ if (IS_DEMO) {
 
 - **Auth** (`lib/auth.ts`): na demo, `isLoggedIn()` retorna `true` e `getUserName()` retorna `"Visitante"`. A rota `/login` redireciona para `/`. O fluxo de WebAuthn nunca aparece.
 - **Push**: o handler de `GET /push/config` responde `{ enabled: false, publicKey: null }`, o mesmo formato do backend sem chaves VAPID. Com isso, `use-push.ts` cai no status `server-disabled`, que já existe, e nenhum código de push precisa mudar. `POST /push/subscriptions` responde `503`, como no backend sem VAPID. `POST /reminders/:id/test` responde sucesso sem notificar.
-- **Banner de demo**: componente novo e discreto (no `AppHeader` no mobile e na sidebar desktop) com o texto "Modo demo · dados fictícios salvos só neste navegador" e um botão **Resetar dados**. O botão abre um `AlertDialog` do shadcn (não um `confirm()` nativo) e chama `resetDemo()`.
+- **Banner de demo**: componente novo e discreto, no topo da coluna de conteúdo (abaixo do `AppHeader` no mobile), com o texto "Modo demo · dados fictícios salvos só neste navegador" e um botão **Resetar dados**. O botão abre um `AlertDialog` do shadcn (não um `confirm()` nativo) e chama `resetDemo()`.
 - **Título/meta**: na demo, o `<title>` e a meta description levam "(demo)".
 - **PWA**: continua ativo na demo (instalável). Nenhuma mudança no `sw.ts`.
 
@@ -113,8 +111,7 @@ O seed é **determinístico**: um gerador pseudoaleatório com seed fixa, de mod
 
 ### 4. Build, deploy e CI
 
-- **`web/.env.demo`** (versionado; não é afetado pelo `.gitignore`) com `VITE_DEMO_MODE=true`.
-- **Scripts em `web/package.json`**: `dev:demo` (`vite --mode demo`) e `build:demo` (`tsc -b && vite build --mode demo`, espelhando o `build` atual). Qualquer pessoa roda a demo localmente sem backend.
+- **Scripts em `web/package.json`**: `dev:demo` (`vite --mode demo`) e `build:demo` (`tsc -b && vite build --mode demo`). Qualquer pessoa roda a demo localmente sem backend.
 - **`web/vercel.json`** com rewrite de SPA (`/(.*)` → `/index.html`), que serve tanto ao projeto de produção quanto ao da demo.
 - **Segundo projeto na Vercel** (ex.: `meu-dinheirinho-demo`): mesmo repo, root `web/`, build command `pnpm build:demo`, sem `VITE_API_URL`. Deploy automático a cada push na `main` pela integração nativa do GitHub, igual à produção. A configuração do projeto é manual e documentada em `docs/deployment.md`, seção "Demo".
 - **CI** (`.github/workflows/ci.yml` e `deploy.yml`): o job `web-ci` passa a rodar também `pnpm build:demo`.

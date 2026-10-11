@@ -114,9 +114,9 @@ O `web/` sobe através do `docker-compose.yml` único na raiz do repo (ver [`arc
 
 **Gotcha: instalar uma dependência nova no host não basta para o container enxergá-la.** O volume anônimo `/app/node_modules` (declarado no `docker-compose.yml` da raiz para não deixar o bind mount `./web:/app` sobrescrever o `node_modules` instalado na imagem) sobrevive a um `docker compose up --build` sozinho — o container recém-criado reusa o volume antigo, com o `node_modules` de antes da instalação. Depois de rodar `pnpm add <pkg>` (ou `pnpm dlx shadcn@latest add ...`) no host, é preciso `docker compose up --build --force-recreate -V` (o `-V` remove os volumes anônimos) para o container instalar de fato a dependência nova — só `--build` não é suficiente e falha silenciosamente com um erro de import não resolvido no Vite.
 
-## Deploy em produção (planejado, ainda não executado)
+## Deploy em produção
 
-Estágio `prod` do `Dockerfile` (build estático + `nginx`) na mesma infraestrutura Coolify/Hostinger VPS já usada pelo backend — outra aplicação no mesmo Coolify, domínio próprio (necessário para HTTPS real e para o `rpID` do WebAuthn funcionar fora de `localhost`).
+O frontend é publicado na **Vercel** (integração nativa com o GitHub, root `web/`, `VITE_API_URL` apontando para o backend no Coolify). O passo a passo está em `docs/deployment.md`. O `web/vercel.json` faz o rewrite de SPA para que deep links não deem 404. O estágio `prod` do `web/Dockerfile` (build estático + `nginx`) continua disponível para quem preferir hospedar o frontend num container.
 
 ## Notificações push (lembretes)
 
@@ -130,8 +130,21 @@ Web Push implementado para os lembretes (`/lembretes`, ver `docs/api.md#reminder
 
 O Discord é o segundo canal, todo no backend (webhook de canal via `DISCORD_WEBHOOK_URL`, sem bot conectado) — ver `docs/deployment.md`.
 
+## Modo demo
+
+Build especial do mesmo app, para portfólio: `pnpm dev:demo` / `pnpm build:demo` (= `vite --mode demo`). Não existe backend: o visitante entra direto (sem login, nome "Visitante"), e os dados ficam no `localStorage` dele (chave `demoDb`).
+
+- **Ponto de troca**: o início de `apiFetch` (`lib/api.ts`). Com `import.meta.env.MODE === 'demo'`, ele delega para `demoFetch` (`src/demo/demo-fetch.ts`), que roteia `método + path` (`src/demo/router.ts` + `routes.ts`) para handlers em `src/demo/handlers/`. Nenhuma tela, hook ou query key sabe que está na demo.
+- **Fidelidade**: os handlers espelham os services do backend (mesmos status e mensagens de erro, incluindo o 500 de foreign key ao excluir conta/categoria em uso). A lógica pura é portada em `src/demo/logic/` com `decimal.js`, a mesma lib do `Prisma.Decimal`, e o dinheiro sai como `"100.5"`, igual ao backend.
+- **⚠️ Mudou regra de negócio ou contrato de endpoint no backend → espelhe em `src/demo/`** (handler e/ou `logic/`). Não há testes que detectem a divergência.
+- **Seed** (`src/demo/seed.ts`): determinístico (PRNG com seed fixa) e relativo à data de hoje. As datas dos lançamentos ficam ao meio-dia UTC, porque a UI formata datas no fuso local e meia-noite UTC apareceria como o dia anterior em UTC-3. Ao mudar o seed ou o formato do `DemoDb`, faça bump em `DEMO_DB_VERSION` para descartar bancos salvos antigos.
+- **Jobs**: o equivalente ao startup do backend (`ensureHorizon` dos gastos fixos e avanço dos lembretes vencidos, sem notificar) roda a cada carregamento (`src/demo/jobs.ts`).
+- **Fora do bundle de produção**: todo `import()` de `src/demo/` fica atrás de `import.meta.env.MODE === 'demo'` **escrito inline**, para o bundler eliminar o chunk. Para conferir: `pnpm build && grep -rl demo.local dist` não pode achar nada.
+- **Push/lembretes**: `/push/config` responde desligado (`server-disabled` no `use-push.ts`) e "testar lembrete" responde que nenhum canal está configurado.
+- **Reset**: banner no topo (`components/demo-banner.tsx`) → `resetDemo()`, que apaga o `demoDb` e o cache persistido do TanStack Query e recarrega a página.
+- **Testando localmente com `pnpm preview`**: o service worker do PWA serve o build anterior no primeiro carregamento depois de um rebuild. Para ver o build novo, desregistre o SW (DevTools → Application) ou recarregue duas vezes.
+
 ## O que ainda não existe
 
 - Testes automatizados no `web/` — decisão deliberada por ora (diferente do `backend/`, que usa Vitest); a arquitetura (funções puras em `lib/`, hooks isolados) foi montada para não bloquear adicionar testes depois, mas nenhum existe hoje.
-- Deploy em produção (domínio + HTTPS + Coolify) — necessário antes de testar Face ID fora de `localhost`.
 - Ícones de marca reais (os atuais são placeholders sólidos gerados por script).
