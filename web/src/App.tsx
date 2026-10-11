@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { RequireAuth } from './components/RequireAuth';
 import { Toaster } from '@/components/ui/sonner';
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt';
+import { IS_DEMO } from './lib/demo-mode';
 import Login from './routes/Login';
 import TabsLayout from './routes/TabsLayout';
 import Home from './routes/Home';
@@ -16,7 +17,10 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route
+          path="/login"
+          element={IS_DEMO ? <Navigate to="/" replace /> : <Login />}
+        />
         <Route element={<RequireAuth />}>
           <Route element={<TabsLayout />}>
             <Route index element={<Home />} />
