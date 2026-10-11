@@ -48,6 +48,11 @@ Work through these in order — later steps depend on decisions made earlier (in
    | `WEBAUTHN_RP_ID` | bare hostname of the **frontend** domain, e.g. `app.example.com` | See warning below. |
    | `WEBAUTHN_RP_NAME` | e.g. `Meu Dinheirinho` | Cosmetic, shown in the OS Face ID/Touch ID prompt. |
    | `WEBAUTHN_ORIGIN` | full HTTPS origin of the **frontend**, e.g. `https://app.example.com` | See warning below. |
+   | `REMINDERS_TZ` | `America/Sao_Paulo` (default, can omit) | Timezone reminder day/time is interpreted in. |
+   | `WEB_APP_URL` | frontend HTTPS origin, e.g. `https://app.example.com` | Optional — makes the Discord embed title link to `/lembretes`. |
+   | `DISCORD_WEBHOOK_URL` | channel webhook URL | Optional. Discord → channel settings → Integrations → Webhooks → New Webhook → Copy URL. Unset = Discord channel disabled. |
+   | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | output of `npx web-push generate-vapid-keys` | Optional, but all three VAPID vars are needed for Web Push. Generate once and keep them — rotating the keys invalidates every device's existing subscription. |
+   | `VAPID_SUBJECT` | `mailto:you@example.com` | Contact URL required by push services. |
    | `NODE_ENV` | `production` | |
    | `PORT` | `3000` (default, can omit) | |
 

@@ -26,3 +26,4 @@ backend/*.tsbuildinfo
 
 # SQLite database file (local dev data, not committed)
 backend/prisma/dev.db*
+.pnpm-store/
