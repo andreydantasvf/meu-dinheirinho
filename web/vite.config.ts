@@ -20,6 +20,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      // injectManifest (não generateSW): o SW customizado em src/sw.ts precisa dos
+      // handlers `push`/`notificationclick` dos lembretes.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: [
         'favicon.ico',

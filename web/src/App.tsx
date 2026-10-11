@@ -8,6 +8,7 @@ import Home from './routes/Home';
 import Extrato from './routes/Extrato';
 import Cartoes from './routes/Cartoes';
 import Categorias from './routes/Categorias';
+import Lembretes from './routes/Lembretes';
 import NovaTransacao from './routes/NovaTransacao';
 import NovaCompraParcelada from './routes/NovaCompraParcelada';
 
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="extrato" element={<Extrato />} />
             <Route path="cartoes" element={<Cartoes />} />
             <Route path="categorias" element={<Categorias />} />
+            <Route path="lembretes" element={<Lembretes />} />
           </Route>
           <Route path="transacoes/nova" element={<NovaTransacao />} />
           <Route path="transacoes/:id" element={<NovaTransacao />} />

@@ -12,4 +12,6 @@ export const queryKeys = {
   purchases: ['purchases'] as const,
   dashboard: (mes?: string) => ['dashboard', mes] as const,
   fatura: (accountId: string) => ['fatura', accountId] as const,
+  reminders: ['reminders'] as const,
+  pushConfig: ['push-config'] as const,
 };

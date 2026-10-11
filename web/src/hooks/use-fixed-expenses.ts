@@ -14,7 +14,7 @@ export function useCreateFixedExpense() {
 
   return useMutation({
     mutationFn: async (data: CreateFixedExpensePayload) => {
-      return apiFetch('/fixed-expenses', {
+      return apiFetch<{ id: string }>('/fixed-expenses', {
         method: 'POST',
         body: data,
       });
@@ -40,6 +40,8 @@ export function useDeleteFixedExpense() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['extrato'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // Cancelar um gasto fixo desativa os lembretes ligados a ele no backend.
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
     },
   });
 }
