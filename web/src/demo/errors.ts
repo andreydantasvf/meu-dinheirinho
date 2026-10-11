@@ -1,0 +1,20 @@
+// Equivalente ao AppError do backend: status + mensagem que o error-handler devolveria.
+export class DemoHttpError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+// Onde o Zod do backend rejeitaria o body/query → 400 "Dados inválidos".
+export function invalid(): DemoHttpError {
+  return new DemoHttpError(400, 'Dados inválidos');
+}
+
+// Onde o backend violaria uma foreign key (ex.: excluir conta/categoria em uso) → 500
+// genérico, ver docs/api.md. Cartoes.tsx trata esse 500 com uma mensagem amigável.
+export function internalError(): DemoHttpError {
+  return new DemoHttpError(500, 'Internal server error');
+}

@@ -8,7 +8,7 @@ Monorepo with two **fully independent** projects (no shared workspaces, separate
 
 - `backend/` — Express + TypeScript + Prisma + SQLite API.
 - `web/` — Vite + React PWA, installable on iPhone via Safari "Add to Home Screen" (replaces an earlier React Native/Expo mobile app that was abandoned before publishing — see `docs/web-architecture.md` for why).
-- `docs/` — product spec (`docs/mvp-spec.md`), technical architecture/decisions log (`docs/architecture.md`), the backend API reference (`docs/api.md`), and the web app's own spec (`docs/web-mvp-spec.md`) and architecture doc (`docs/web-architecture.md`). Read `docs/architecture.md` before making non-trivial backend changes — it documents several non-obvious setup decisions (Prisma 7 driver-adapter requirement, Docker port/volume quirks, etc.) that aren't visible from the code alone. Read `docs/web-architecture.md` before making non-trivial changes in `web/` — it covers the PWA/iOS install caveats and the auth flow. Read `docs/api.md` before writing any screen that calls the backend — it has every route, request/response shape, and the Decimal-as-string serialization gotcha (money fields arrive as e.g. `"100.5"`, not a fixed-2-decimal string or a JS number). Read `docs/deployment.md` before touching CI/CD, the backend `Dockerfile`'s prod stage, or anything under `.github/workflows/` — it's the step-by-step guide for first-time Coolify (backend) and Vercel (frontend) setup plus the GitHub Actions pipeline that gates deploys on lint/typecheck/test.
+- `docs/` — design prototype (`docs/design/`), demo screenshots used by the README (`docs/screenshots/`), product spec (`docs/mvp-spec.md`), technical architecture/decisions log (`docs/architecture.md`), the backend API reference (`docs/api.md`), and the web app's own spec (`docs/web-mvp-spec.md`) and architecture doc (`docs/web-architecture.md`). Read `docs/architecture.md` before making non-trivial backend changes — it documents several non-obvious setup decisions (Prisma 7 driver-adapter requirement, Docker port/volume quirks, etc.) that aren't visible from the code alone. Read `docs/web-architecture.md` before making non-trivial changes in `web/` — it covers the PWA/iOS install caveats and the auth flow. Read `docs/api.md` before writing any screen that calls the backend — it has every route, request/response shape, and the Decimal-as-string serialization gotcha (money fields arrive as e.g. `"100.5"`, not a fixed-2-decimal string or a JS number). Read `docs/deployment.md` before touching CI/CD, the backend `Dockerfile`'s prod stage, or anything under `.github/workflows/` — it's the step-by-step guide for first-time Coolify (backend) and Vercel (frontend) setup plus the GitHub Actions pipeline that gates deploys on lint/typecheck/test.
 
 Both projects use **pnpm**, not npm/yarn. Despite being independent projects (separate lockfiles, no shared workspace), both run through a single `docker-compose.yml` at the repo root — see "Docker (root `docker-compose.yml`)" below.
 
@@ -16,10 +16,9 @@ Both projects use **pnpm**, not npm/yarn. Despite being independent projects (se
 
 ```bash
 docker compose up --build                    # dev: api on :3000, web on :5173, hot reload via bind mounts
-docker compose --profile prod up --build      # prod: api-prod on :3000, web-prod (nginx) on :80
 ```
 
-One compose file for both dev and prod, at the repo root (not per-project). The `api`/`web` services (no `profiles` key) are the dev default and match the `dev` target of each project's `Dockerfile`; `api-prod`/`web-prod` are gated behind `profiles: ['prod']` so a plain `docker compose up` never starts them, and build the `prod` target instead (compiled backend served by `node`, static web bundle served by `nginx`). `api-prod` uses a named volume (`api-data`) for `prisma/dev.db` since the prod image has no bind mount to persist it across restarts.
+One compose file at the repo root (not per-project), dev only: the `api`/`web` services build the `dev` target of each project's `Dockerfile`. Production images come from each `Dockerfile`'s `prod` target instead (compiled backend served by `node`, used by Coolify — see `docs/deployment.md`; static web bundle served by `nginx`, unused now that the web deploys to Vercel). On a fresh clone, the `./backend:/app` bind mount hides the Prisma client generated inside the image (`src/generated/` is gitignored) and the dev container doesn't run migrations — run `docker compose run --rm --no-deps api sh -c "pnpm prisma generate && pnpm prisma migrate deploy"` once before the first `up` (this is the README's quick start).
 
 ## Backend (`backend/`)
 
@@ -71,6 +70,8 @@ cd web
 pnpm dev                     # ...or run the Vite dev server directly on the host, same effect
 pnpm build                   # production build (output in dist/, includes the generated service worker)
 pnpm preview                 # serve the production build locally
+pnpm dev:demo                # demo without backend (vite --mode demo) — see "Demo mode" below
+pnpm build:demo              # demo build (deployed to a separate Vercel project)
 pnpm lint                    # eslint
 pnpm format                  # prettier --write
 pnpm exec tsc --noEmit       # type-check
@@ -95,5 +96,7 @@ Vite + React + TypeScript, installable as a PWA via Safari's "Add to Home Screen
 **Offline (read-only)**: the `QueryClient` (`lib/query-client.ts`) is persisted to `localStorage` via `@tanstack/react-query-persist-client` + `@tanstack/query-sync-storage-persister` (wired in `main.tsx` via `PersistQueryClientProvider`), not via Workbox `runtimeCaching` — the service worker still never touches API responses, per `docs/web-architecture.md`. This is transparent to the existing per-entity hooks; no write queue exists, so creating/editing still requires connectivity. `hooks/use-online-status.ts` + a badge in `AppHeader` surface connection status. See `docs/web-architecture.md#uso-offline-leitura` for the full rationale (including the cache-buster gotcha).
 
 `VITE_API_URL` (in `.env`) must be the Mac's LAN IP, not `localhost`, when testing on a physical iPhone over the local network — `localhost` on-device resolves to the phone itself. `vite.config.ts` sets `server.host: true` so the dev server binds `0.0.0.0` (not just `localhost`) — required both for that LAN/iPhone case and for reaching the Vite dev server running inside Docker from the host.
+
+**Demo mode** (`--mode demo`): `apiFetch` delegates to an in-browser fake API in `src/demo/` (handlers mirroring the backend services over a `localStorage` "database", pure logic ported to `src/demo/logic/` with `decimal.js`). **If you change a backend business rule or endpoint contract, mirror it in `src/demo/`** — nothing tests for drift. Every `import()` of `src/demo/` must sit behind an inline `import.meta.env.MODE === 'demo'` check so it's tree-shaken out of the production bundle. See `docs/web-architecture.md#modo-demo`.
 
 The web dev server runs as the `web` service in the root `docker-compose.yml` (see "Docker" section above), exposed at `localhost:5173`.

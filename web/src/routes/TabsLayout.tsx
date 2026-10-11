@@ -3,6 +3,8 @@ import { BottomTabBar } from '../components/BottomTabBar';
 import { AppHeader } from '../components/AppHeader';
 import { DesktopSidebar } from '../components/desktop-sidebar';
 import { DesktopFab } from '../components/desktop-fab';
+import { DemoBanner } from '../components/demo-banner';
+import { IS_DEMO } from '../lib/demo-mode';
 
 export default function TabsLayout() {
   return (
@@ -12,6 +14,7 @@ export default function TabsLayout() {
         <div className="md:hidden">
           <AppHeader />
         </div>
+        {IS_DEMO && <DemoBanner />}
         <main className="flex-1 pb-28 md:pb-8 md:pt-8 px-4 relative">
           <Outlet />
         </main>
