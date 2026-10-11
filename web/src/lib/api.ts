@@ -22,6 +22,13 @@ export async function apiFetch<T>(
   path: string,
   options: ApiFetchOptions = {},
 ): Promise<T> {
+  // Comparação inline com MODE (e não via IS_DEMO importado) para o bundler eliminar este
+  // import() no build normal: src/demo/ não pode entrar no bundle de produção.
+  if (import.meta.env.MODE === 'demo') {
+    const { demoFetch } = await import('@/demo/demo-fetch');
+    return demoFetch<T>(path, { method: options.method, body: options.body });
+  }
+
   const { skipAuth, body, headers, ...rest } = options;
   const token = skipAuth ? null : getToken();
 
