@@ -4,6 +4,7 @@ import {
   IconReceipt,
   IconCreditCard,
   IconTag,
+  IconBell,
 } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
 import { ThemeQuickToggle } from '@/components/theme-quick-toggle';
@@ -14,6 +15,7 @@ export function DesktopSidebar() {
     { to: '/extrato', label: 'Extrato', icon: IconReceipt, end: false },
     { to: '/cartoes', label: 'Cartões', icon: IconCreditCard, end: false },
     { to: '/categorias', label: 'Categorias', icon: IconTag, end: false },
+    { to: '/lembretes', label: 'Lembretes', icon: IconBell, end: false },
   ];
 
   return (

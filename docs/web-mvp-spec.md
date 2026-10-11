@@ -31,7 +31,7 @@ Não há multiusuário, cadastro de conta ou recuperação de senha — é delib
 
 ## Fora do escopo desta fase (roadmap)
 
-- **Notificações push** (Web Push via Service Worker): avisos de fatura fechando, lembrete de parcela vencendo. Documentado como próximo passo em [`web-architecture.md`](./web-architecture.md) — exige infraestrutura nova no backend (chaves VAPID, tabela de subscriptions, algum job/gatilho agendado) que não existe ainda.
+- **Notificações push** (Web Push via Service Worker): ~~fora do MVP~~ — implementado depois, para os lembretes de entradas/saídas (tela `/lembretes`, ver [`web-architecture.md`](./web-architecture.md#notificações-push-lembretes)). Aviso automático de fatura fechando continua não implementado.
 - Uso offline para **criar/editar** dados: só leitura é suportada (últimos dados sincronizados continuam visíveis sem rede); mutações continuam exigindo conexão — ver [`web-architecture.md`](./web-architecture.md#uso-offline-leitura).
 - Multiusuário (mantém-se fora de escopo, conforme `mvp-spec.md`).
 

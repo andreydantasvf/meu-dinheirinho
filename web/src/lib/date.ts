@@ -28,3 +28,23 @@ export function currentMonth(): string {
 export function shiftMonth(mes: string, delta: number): string {
   return format(addMonths(parse(mes, 'yyyy-MM', new Date()), delta), 'yyyy-MM');
 }
+
+// Date-only fields (e.g. a reminder's dataUnica) are stored as UTC midnight of the chosen
+// calendar day. Reading them in local time would shift the day back in UTC-3, so these
+// helpers go through the UTC parts explicitly.
+
+/** UTC-midnight ISO from the API -> "05/12/2026". */
+export function formatUtcDate(iso: string): string {
+  return iso.slice(0, 10).split('-').reverse().join('/');
+}
+
+/** UTC-midnight ISO from the API -> local-midnight ISO, for seeding DatePickerField. */
+export function utcDateToLocalIso(iso: string): string {
+  const [year, month, day] = iso.slice(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, day).toISOString();
+}
+
+/** DatePickerField's local ISO -> "2026-12-05", for date-only API fields. */
+export function localIsoToDateOnly(iso: string): string {
+  return format(parseISO(iso), 'yyyy-MM-dd');
+}

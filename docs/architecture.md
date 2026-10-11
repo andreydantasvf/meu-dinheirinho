@@ -56,6 +56,12 @@ A fatia de `reports.*` (`repository`/`service`/`controller`/`routes` sob `dashbo
 - `ENV DATABASE_URL=...` no `Dockerfile` (estágio `base`) existe só como placeholder para o `prisma generate` (rodado via `postinstall`) conseguir resolver a variável durante o build da imagem — em runtime o `env_file: ./backend/.env` do `docker-compose.yml` sobrescreve com o valor real.
 - ⚠️ **Deploy em produção** (Coolify) ainda não foi executado — o compose de raiz com o profile `prod` foi modelado com isso em mente, mas nunca testado contra um Coolify de verdade.
 
+### Lembretes
+
+Lembretes (`Reminder`) são um módulo separado de `Transaction`, de propósito. `Transaction` é um lançamento concreto — `calcularSaldoMes` soma toda transação do mês e não existe status pago/pendente —, então um lembrete guardado como transação mexeria no saldo (e um recebimento de valor variável, como um freela, distorceria a projeção). Um lembrete "todo dia 25" é uma **regra**, no mesmo espírito do `FixedExpense` (o "contrato" separado das transações que gera). O vínculo com transações fica na UX: o form de nova transação tem o toggle "Me lembrar todo mês", que cria um `Reminder` pré-preenchido depois de salvar (e liga `fixedExpenseId` quando "Despesa fixa" também está marcado).
+
+Agendamento: `proximoDisparo` (UTC) é calculado por uma função pura (`services/reminder-schedule.ts`) que converte dia/horário locais (`REMINDERS_TZ`) para UTC via `Intl.DateTimeFormat`, sem lib de timezone. O cron (`jobs/reminder.job.ts`, a cada 5 min) busca `ativo && proximoDisparo <= agora`, notifica todos os canais configurados (`src/notifications/`: Discord via webhook, Web Push via `web-push`) e avança `proximoDisparo`. Canais são opcionais por env — sem config, viram no-op.
+
 ## Web
 
 Ver [`web-architecture.md`](./web-architecture.md) para as decisões técnicas completas do app web (Vite/PWA, iOS install, WebAuthn, roteamento, etc.) — inclusive por que ele substituiu o app mobile React Native/Expo que existia antes.
@@ -63,4 +69,3 @@ Ver [`web-architecture.md`](./web-architecture.md) para as decisões técnicas c
 ## O que ainda não existe
 
 - Telas reais no web (todas são placeholders hoje, exceto o health-check da Home — ver [`web-architecture.md`](./web-architecture.md)).
-- Web Push notifications (documentado como trabalho futuro em [`web-architecture.md`](./web-architecture.md)).

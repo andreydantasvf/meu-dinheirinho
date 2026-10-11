@@ -77,3 +77,39 @@ export type FaturaData = {
   faturasFuturas: Array<{ mes: string; total: string }>;
   limiteDisponivel: string;
 };
+
+export type ReminderTipo = 'ENTRADA' | 'SAIDA';
+export type ReminderRecorrencia = 'MENSAL' | 'UNICO';
+
+// Lembretes só notificam — nunca afetam saldo (ver docs/architecture.md).
+export type Reminder = {
+  id: string;
+  titulo: string;
+  tipo: ReminderTipo;
+  valor: string | null;
+  recorrencia: ReminderRecorrencia;
+  diaDoMes: number | null;
+  /** UTC midnight of the chosen calendar date — read with its UTC parts, not local time. */
+  dataUnica: string | null;
+  horario: string;
+  diasAntecedencia: number;
+  ativo: boolean;
+  proximoDisparo: string | null;
+  ultimoDisparo: string | null;
+  fixedExpenseId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ReminderTestResult = {
+  canais: Array<{
+    canal: string;
+    status: 'enviado' | 'falhou' | 'desativado';
+    erro?: string;
+  }>;
+};
+
+export type PushConfig = {
+  enabled: boolean;
+  publicKey: string | null;
+};

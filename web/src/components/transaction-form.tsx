@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useCreateFixedExpense } from '@/hooks/use-fixed-expenses';
-import { useNavigate } from 'react-router-dom';
+import { useCreateReminder, useReminders } from '@/hooks/use-reminders';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import type {
   Control,
   FieldErrors,
   Path,
   UseFormRegister,
+  UseFormRegisterReturn,
   UseFormSetValue,
 } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,7 +38,12 @@ import {
   useCreateTransaction,
   useUpdateTransaction,
 } from '@/hooks/use-transactions';
-import type { Account, Category, Transaction, TransactionType } from '@/types/entities';
+import type {
+  Account,
+  Category,
+  Transaction,
+  TransactionType,
+} from '@/types/entities';
 
 const commonFieldsSchema = {
   valor: z
@@ -51,9 +58,13 @@ const commonFieldsSchema = {
 const despesaSchema = z.object({
   ...commonFieldsSchema,
   isFixedExpense: z.boolean().optional(),
+  lembrarTodoMes: z.boolean().optional(),
 });
 
-const receitaSchema = z.object(commonFieldsSchema);
+const receitaSchema = z.object({
+  ...commonFieldsSchema,
+  lembrarTodoMes: z.boolean().optional(),
+});
 
 type CommonFormValues = z.infer<z.ZodObject<typeof commonFieldsSchema>>;
 type DespesaFormValues = z.infer<typeof despesaSchema>;
@@ -66,6 +77,7 @@ const emptyDespesaValues: DespesaFormValues = {
   descricao: '',
   data: new Date().toISOString(),
   isFixedExpense: false,
+  lembrarTodoMes: false,
 };
 
 const emptyReceitaValues: ReceitaFormValues = {
@@ -74,6 +86,7 @@ const emptyReceitaValues: ReceitaFormValues = {
   accountId: '',
   descricao: '',
   data: new Date().toISOString(),
+  lembrarTodoMes: false,
 };
 
 function toCommonValues(transaction: Transaction): CommonFormValues {
@@ -89,18 +102,121 @@ function toCommonValues(transaction: Transaction): CommonFormValues {
 // Only prefills from `transaction` when it actually matches this form's type —
 // switching type on an existing transaction starts that type's fields fresh
 // instead of carrying over a category/account that belongs to the other type.
-function despesaDefaults(transaction: Transaction | undefined): DespesaFormValues {
+function despesaDefaults(
+  transaction: Transaction | undefined,
+): DespesaFormValues {
   if (transaction?.tipo === 'DESPESA') {
-    return { ...toCommonValues(transaction), isFixedExpense: false };
+    return {
+      ...toCommonValues(transaction),
+      isFixedExpense: false,
+      lembrarTodoMes: false,
+    };
   }
   return emptyDespesaValues;
 }
 
-function receitaDefaults(transaction: Transaction | undefined): ReceitaFormValues {
+function receitaDefaults(
+  transaction: Transaction | undefined,
+): ReceitaFormValues {
   if (transaction?.tipo === 'RECEITA') {
-    return toCommonValues(transaction);
+    return { ...toCommonValues(transaction), lembrarTodoMes: false };
   }
   return emptyReceitaValues;
+}
+
+// Lembrete é um módulo à parte (não mexe no saldo) — o toggle só cria um Reminder
+// mensal pré-preenchido depois que a transação foi salva.
+function useCreateMonthlyReminder() {
+  const createReminder = useCreateReminder();
+  return async (
+    values: CommonFormValues,
+    tipo: TransactionType,
+    fixedExpenseId?: string,
+  ) => {
+    try {
+      await createReminder.mutateAsync({
+        titulo: values.descricao,
+        tipo: tipo === 'RECEITA' ? 'ENTRADA' : 'SAIDA',
+        valor: values.valor,
+        recorrencia: 'MENSAL',
+        diaDoMes: new Date(values.data).getDate(),
+        fixedExpenseId: fixedExpenseId ?? null,
+      });
+      toast.success('Lembrete mensal criado');
+    } catch (error) {
+      toast.warning('Transação salva, mas o lembrete não foi criado', {
+        description: error instanceof ApiError ? error.message : undefined,
+      });
+    }
+  };
+}
+
+// Não existe FK transação → lembrete, então ao editar procura um lembrete que
+// "pertença" à transação: mesmo gasto fixo, ou mesmo título/tipo/dia (o que o
+// toggle teria criado). Evita oferecer criar um lembrete duplicado.
+function useExistingReminder(transaction: Transaction | undefined) {
+  const { data: reminders } = useReminders();
+  if (!transaction || !reminders) return undefined;
+  const tipo = transaction.tipo === 'RECEITA' ? 'ENTRADA' : 'SAIDA';
+  const dia = new Date(transaction.data).getDate();
+  return reminders.find(
+    (r) =>
+      (transaction.fixedExpenseId &&
+        r.fixedExpenseId === transaction.fixedExpenseId) ||
+      (r.recorrencia === 'MENSAL' &&
+        r.tipo === tipo &&
+        r.titulo === transaction.descricao &&
+        r.diaDoMes === dia),
+  );
+}
+
+function RememberMonthlyToggle({
+  inputProps,
+  transaction,
+}: {
+  inputProps: UseFormRegisterReturn;
+  transaction?: Transaction;
+}) {
+  const existing = useExistingReminder(transaction);
+
+  if (existing) {
+    return (
+      <Link
+        to="/lembretes"
+        className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-foreground/5 transition-colors"
+      >
+        <div className="flex flex-1 flex-col">
+          <span className="text-sm font-bold text-foreground">
+            Lembrete mensal ativo
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {existing.ativo
+              ? `Todo dia ${existing.diaDoMes ?? '—'} às ${existing.horario}`
+              : 'Pausado'}{' '}
+            · gerenciar em Lembretes
+          </span>
+        </div>
+      </Link>
+    );
+  }
+
+  return (
+    <label className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-foreground/5 cursor-pointer transition-colors">
+      <div className="flex flex-1 flex-col">
+        <span className="text-sm font-bold text-foreground">
+          Me lembrar todo mês
+        </span>
+        <span className="text-xs text-muted-foreground">
+          Notifica no celular e no Discord neste mesmo dia
+        </span>
+      </div>
+      <input
+        type="checkbox"
+        className="size-5 rounded border-border text-primary focus:ring-primary/20 bg-background"
+        {...inputProps}
+      />
+    </label>
+  );
 }
 
 function TransactionCommonFields<T extends CommonFormValues>({
@@ -244,6 +360,7 @@ function DespesaForm({
   const createTransaction = useCreateTransaction();
   const createFixedExpense = useCreateFixedExpense();
   const updateTransaction = useUpdateTransaction();
+  const createMonthlyReminder = useCreateMonthlyReminder();
 
   const {
     register,
@@ -266,8 +383,9 @@ function DespesaForm({
 
   async function onSubmit(values: DespesaFormValues) {
     try {
-      if (values.isFixedExpense && !isEditing) {
-        await createFixedExpense.mutateAsync({
+      const { isFixedExpense, lembrarTodoMes, ...transactionValues } = values;
+      if (isFixedExpense && !isEditing) {
+        const fixedExpense = await createFixedExpense.mutateAsync({
           accountId: values.accountId,
           categoryId: values.categoryId,
           valor: values.valor,
@@ -275,12 +393,30 @@ function DespesaForm({
           dataInicio: values.data,
         });
         toast.success('Despesa fixa criada com sucesso');
+        if (lembrarTodoMes) {
+          await createMonthlyReminder(values, 'DESPESA', fixedExpense.id);
+        }
       } else if (isEditing && id) {
-        await updateTransaction.mutateAsync({ id, tipo: 'DESPESA', ...values });
+        await updateTransaction.mutateAsync({
+          id,
+          tipo: 'DESPESA',
+          ...transactionValues,
+        });
         toast.success('Transação atualizada com sucesso');
+        if (lembrarTodoMes) {
+          await createMonthlyReminder(
+            values,
+            'DESPESA',
+            transaction?.fixedExpenseId ?? undefined,
+          );
+        }
       } else {
-        await createTransaction.mutateAsync({ tipo: 'DESPESA', ...values });
+        await createTransaction.mutateAsync({
+          tipo: 'DESPESA',
+          ...transactionValues,
+        });
         toast.success('Transação criada com sucesso');
+        if (lembrarTodoMes) await createMonthlyReminder(values, 'DESPESA');
       }
       navigate(-1);
     } catch (error) {
@@ -334,6 +470,11 @@ function DespesaForm({
           </label>
         )}
 
+        <RememberMonthlyToggle
+          inputProps={register('lembrarTodoMes')}
+          transaction={isEditing ? transaction : undefined}
+        />
+
         <Button
           type="submit"
           disabled={isSubmitting}
@@ -362,6 +503,7 @@ function ReceitaForm({
   const { data: accounts } = useAccounts();
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
+  const createMonthlyReminder = useCreateMonthlyReminder();
 
   const {
     register,
@@ -382,12 +524,22 @@ function ReceitaForm({
 
   async function onSubmit(values: ReceitaFormValues) {
     try {
+      const { lembrarTodoMes, ...transactionValues } = values;
       if (isEditing && id) {
-        await updateTransaction.mutateAsync({ id, tipo: 'RECEITA', ...values });
+        await updateTransaction.mutateAsync({
+          id,
+          tipo: 'RECEITA',
+          ...transactionValues,
+        });
         toast.success('Transação atualizada com sucesso');
+        if (lembrarTodoMes) await createMonthlyReminder(values, 'RECEITA');
       } else {
-        await createTransaction.mutateAsync({ tipo: 'RECEITA', ...values });
+        await createTransaction.mutateAsync({
+          tipo: 'RECEITA',
+          ...transactionValues,
+        });
         toast.success('Transação criada com sucesso');
+        if (lembrarTodoMes) await createMonthlyReminder(values, 'RECEITA');
       }
       navigate(-1);
     } catch (error) {
@@ -421,6 +573,11 @@ function ReceitaForm({
           categoryTipo="RECEITA"
           accounts={accounts}
           selectedCategoryId={selectedCategoryId}
+        />
+
+        <RememberMonthlyToggle
+          inputProps={register('lembrarTodoMes')}
+          transaction={isEditing ? transaction : undefined}
         />
 
         <Button

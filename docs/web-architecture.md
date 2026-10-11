@@ -12,7 +12,7 @@ Vite + React + TypeScript. `pnpm create vite web -- --template react-ts` como po
 
 ## PWA (`vite-plugin-pwa`)
 
-Estratégia `generateSW` (Workbox gerado automaticamente) em vez de `injectManifest` — não há nenhum handler customizado de service worker (push, sync em background) nesta fase, então o SW gerado automaticamente é suficiente. Revisar para `injectManifest` quando Web Push for implementado (precisa de um handler `push` customizado).
+Estratégia `injectManifest` com SW próprio em `src/sw.ts` (antes era `generateSW`; trocado para os lembretes, que precisam de handlers `push`/`notificationclick`). O `sw.ts` replica exatamente o que o `generateSW` gerava — `skipWaiting()` + `clientsClaim()` (o `registerType: 'autoUpdate'` depende disso), `precacheAndRoute(self.__WB_MANIFEST)`, `cleanupOutdatedCaches()` e o fallback SPA (`NavigationRoute` → `index.html`). Ele tem seu próprio `tsconfig.sw.json` (lib `WebWorker`) e fica excluído do `tsconfig.app.json`, porque misturar as libs `DOM` e `WebWorker` num mesmo projeto TS gera conflito de tipos.
 
 **Sem `runtimeCaching` para a API** — decisão deliberada, não omissão. O backend vive numa origem diferente (`VITE_API_URL`), então o precache do Workbox só cobre os assets estáticos do próprio app; respostas da API (saldo, transações) nunca são cacheadas pelo service worker e sempre batem na rede. Dado financeiro pessoal não deve arriscar ficar em cache stale. (Isso não significa que não há cache de leitura nenhum — ver "Uso offline (leitura)" abaixo, que resolve isso numa camada diferente, sem envolver o service worker.)
 
@@ -32,6 +32,7 @@ Estrutura em `src/App.tsx`:
 - `/login` — única rota pública.
 - Tudo mais fica atrás de `RequireAuth` (`src/components/RequireAuth.tsx`) — redireciona para `/login` se não houver token salvo. É um guard client-side (checa só a presença do token); a validação de verdade é sempre server-side via `x-api-token` em cada chamada de API.
 - `TabsLayout` (`src/routes/TabsLayout.tsx`) envolve as 4 telas de aba (Home, Extrato, Cartões, Categorias) com uma tab bar inferior fixa (`components/BottomTabBar.tsx`).
+- `lembretes` também fica dentro do `TabsLayout` (ganha header/sidebar), mas **não** é aba — a tab bar continua com 4 itens. Acesso pelo sino no `AppHeader` (mobile) e por um item na `desktop-sidebar`.
 - `transacoes/nova` e `compras/nova` são rotas irmãs de `TabsLayout` (não aninhadas nela), renderizadas como overlay de tela cheia via `components/ModalRoute.tsx` — espelha o padrão de "modal routes" que o `mobile/` usava no Expo Router.
 
 ## Estado do que é real vs. placeholder
@@ -117,18 +118,20 @@ O `web/` sobe através do `docker-compose.yml` único na raiz do repo (ver [`arc
 
 Estágio `prod` do `Dockerfile` (build estático + `nginx`) na mesma infraestrutura Coolify/Hostinger VPS já usada pelo backend — outra aplicação no mesmo Coolify, domínio próprio (necessário para HTTPS real e para o `rpID` do WebAuthn funcionar fora de `localhost`).
 
-## Notificações push — fora de escopo desta fase (roadmap)
+## Notificações push (lembretes)
 
-Web Push (Push API + Service Worker) documentado aqui como próximo passo, não implementado:
-- Precisa de chaves VAPID geradas e guardadas no backend.
-- Precisa de uma tabela `PushSubscription` (Prisma) para guardar a subscription de cada dispositivo que aceitar notificações.
-- Precisa de algum gatilho — um job agendado (ex: avisar quando a fatura fecha) ou disparado por evento (ex: parcela vencendo hoje) — que hoje não existe no backend (nenhuma infra de cron/scheduler no projeto ainda).
-- No `vite-plugin-pwa`, exigiria trocar `generateSW` por `injectManifest` para adicionar um handler `push` customizado ao service worker.
-- Suporte do iOS: Web Push só funciona em Safari 16.4+ **com o PWA instalado na Tela de Início** (não funciona pelo Safari normal) — outra razão para a instalação via "Adicionar à Tela de Início" já ser parte do fluxo principal, não um extra.
+Web Push implementado para os lembretes (`/lembretes`, ver `docs/api.md#reminders`):
+- Backend: chaves VAPID em env (`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` — sem as três, push fica desligado e `/push/config` responde `enabled: false`), tabela `PushSubscription`, lib `web-push`, disparo por cron (`jobs/reminder.job.ts`).
+- Web: `hooks/use-push.ts` lê `/push/config`, pede permissão e registra a subscription. O card "Notificações neste dispositivo" na tela de Lembretes mostra o estado (sem suporte, sem SW, servidor desligado, bloqueado, ativo).
+- **iOS**: Web Push só funciona no Safari 16.4+ **com o PWA instalado na Tela de Início** — no Safari normal, `PushManager` nem existe (o card mostra a instrução de instalar). A permissão só pode ser pedida a partir de um toque do usuário, por isso o botão "Ativar" em vez de pedir ao abrir a tela.
+- **Dev**: no `pnpm dev`, o `vite-plugin-pwa` não registra service worker, então o card mostra "só funciona na versão instalada/build". Para testar push localmente: `pnpm build && pnpm preview` (localhost conta como contexto seguro).
+- Clicar na notificação foca uma janela já aberta do app (ou abre uma nova) em `/lembretes`.
+- O SW continua **sem** `runtimeCaching` para a API — push não muda isso.
+
+O Discord é o segundo canal, todo no backend (webhook de canal via `DISCORD_WEBHOOK_URL`, sem bot conectado) — ver `docs/deployment.md`.
 
 ## O que ainda não existe
 
 - Testes automatizados no `web/` — decisão deliberada por ora (diferente do `backend/`, que usa Vitest); a arquitetura (funções puras em `lib/`, hooks isolados) foi montada para não bloquear adicionar testes depois, mas nenhum existe hoje.
-- Web Push notifications (ver seção acima).
 - Deploy em produção (domínio + HTTPS + Coolify) — necessário antes de testar Face ID fora de `localhost`.
 - Ícones de marca reais (os atuais são placeholders sólidos gerados por script).

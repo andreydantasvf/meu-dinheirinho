@@ -24,6 +24,16 @@ enum TransactionType {
   DESPESA
 }
 
+enum ReminderTipo {
+  ENTRADA
+  SAIDA
+}
+
+enum ReminderRecorrencia {
+  MENSAL
+  UNICO
+}
+
 model Account {
   id            String      @id @default(cuid())
   nome          String
@@ -121,6 +131,43 @@ model FixedExpense {
   account      Account       @relation(fields: [accountId], references: [id])
   category     Category      @relation(fields: [categoryId], references: [id])
   transactions Transaction[]
+  reminders    Reminder[]
 
   @@map("fixed_expenses")
+}
+
+// Lembrete de entrada/saída: só notifica (Web Push + Discord), nunca afeta saldo.
+// É uma regra de recorrência, não um lançamento — ver docs/architecture.md.
+model Reminder {
+  id               String              @id @default(cuid())
+  titulo           String
+  tipo             ReminderTipo
+  valor            Decimal?
+  recorrencia      ReminderRecorrencia
+  diaDoMes         Int?                @map("dia_do_mes")
+  dataUnica        DateTime?           @map("data_unica")
+  horario          String              @default("09:00") // HH:mm no fuso REMINDERS_TZ
+  diasAntecedencia Int                 @default(0) @map("dias_antecedencia")
+  ativo            Boolean             @default(true)
+  proximoDisparo   DateTime?           @map("proximo_disparo") // null = sem próximo disparo
+  ultimoDisparo    DateTime?           @map("ultimo_disparo")
+  fixedExpenseId   String?             @map("fixed_expense_id")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  fixedExpense FixedExpense? @relation(fields: [fixedExpenseId], references: [id])
+
+  @@index([ativo, proximoDisparo])
+  @@index([fixedExpenseId])
+  @@map("reminders")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("push_subscriptions")
 }

@@ -212,6 +212,65 @@ Response de `POST /fixed-expenses`:
 }
 ```
 
+## Reminders (lembretes de entradas e saídas)
+
+Lembretes **só notificam** (Web Push + Discord) — nunca criam transação nem afetam saldo. São uma regra de recorrência separada de `Transaction` (ver `architecture.md#lembretes`).
+
+| Método | Rota | Body |
+|---|---|---|
+| GET | `/reminders` | — |
+| GET | `/reminders/:id` | — |
+| POST | `/reminders` | `{ titulo, tipo, valor?, recorrencia, diaDoMes?, dataUnica?, horario?, diasAntecedencia?, ativo?, fixedExpenseId? }` |
+| PUT | `/reminders/:id` | qualquer subconjunto dos campos do POST |
+| DELETE | `/reminders/:id` | — |
+| POST | `/reminders/:id/test` | — (dispara agora, sem mexer no agendamento) |
+
+- `tipo`: `"ENTRADA" \| "SAIDA"` (enum próprio, não reaproveita `RECEITA`/`DESPESA`).
+- `valor`: opcional (`null` = sem valor). É só exibido na mensagem — Decimal serializado como string, igual aos outros campos de dinheiro.
+- `recorrencia`: `"MENSAL"` exige `diaDoMes` (1–31; em meses curtos cai no último dia); `"UNICO"` exige `dataUnica` (envie `"yyyy-MM-dd"`; volta como meia-noite UTC — leia pelas partes UTC, não em horário local). O campo da outra recorrência é zerado (`null`) automaticamente. No `PUT`, a regra é validada sobre o registro já mesclado → `400` se trocar para `UNICO` sem `dataUnica`.
+- `horario`: `"HH:mm"`, default `"09:00"`, interpretado no fuso `REMINDERS_TZ` do backend (default `America/Sao_Paulo`).
+- `diasAntecedencia`: 0–7, default 0 — dispara N dias antes do dia do evento.
+- `proximoDisparo` (response, UTC): recalculado a cada create/update a partir de "agora" — reativar um lembrete pausado **não** dispara os avisos perdidos. `null` = encerrado (lembrete único que já disparou).
+- `fixedExpenseId`: opcional. Cancelar o gasto fixo (`DELETE /fixed-expenses/:id`) desativa (`ativo: false`) os lembretes ligados.
+- Disparo: cron a cada 5 min (+ uma vez no startup). Se o servidor ficou fora do ar e vários disparos passaram, manda **uma** notificação ("venceu em DD/MM") e pula para a próxima ocorrência futura. Um canal falhando não impede os outros nem trava o agendamento.
+
+Response de `POST /reminders`:
+```json
+{
+  "id": "...",
+  "titulo": "Freela da Nara",
+  "tipo": "ENTRADA",
+  "valor": "1500.5",
+  "recorrencia": "MENSAL",
+  "diaDoMes": 25,
+  "dataUnica": null,
+  "horario": "09:00",
+  "diasAntecedencia": 0,
+  "ativo": true,
+  "proximoDisparo": "2026-10-25T12:00:00.000Z",
+  "ultimoDisparo": null,
+  "fixedExpenseId": null,
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+```
+
+Response de `POST /reminders/:id/test` — status por canal (`desativado` = canal sem env configurada no backend):
+```json
+{ "canais": [ { "canal": "discord", "status": "enviado" }, { "canal": "web-push", "status": "falhou", "erro": "..." } ] }
+```
+
+## Push (Web Push subscriptions)
+
+| Método | Rota | Body |
+|---|---|---|
+| GET | `/push/config` | — → `{ enabled, publicKey }` (`publicKey` = VAPID pública, `null` se push desligado) |
+| POST | `/push/subscriptions` | `PushSubscription.toJSON()` do navegador: `{ endpoint, keys: { p256dh, auth } }` → `201`; `503` se o servidor não tem VAPID |
+| DELETE | `/push/subscriptions` | `{ endpoint }` → `204` |
+
+- `endpoint` precisa ser HTTPS num push service de navegador (`fcm.googleapis.com`, `web.push.apple.com`, `*.push.services.mozilla.com`, `*.notify.windows.com`) → senão `400`. Como o backend faz POST para esse endpoint a cada disparo, isso impede usar a rota para mandar requisições a hosts arbitrários (SSRF).
+- Upsert por `endpoint` (re-inscrever o mesmo dispositivo não duplica). Subscriptions que o push service responde `404`/`410` são apagadas automaticamente no próximo envio.
+
 ## Reports (dashboard, extrato, fatura)
 
 Camada somente-leitura de agregação sobre `Transaction`/`Account` — sem model Prisma próprio.

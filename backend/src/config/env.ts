@@ -13,6 +13,15 @@ const envSchema = z.object({
   WEBAUTHN_RP_ID: z.string().min(1, 'WEBAUTHN_RP_ID is required'),
   WEBAUTHN_RP_NAME: z.string().min(1, 'WEBAUTHN_RP_NAME is required'),
   WEBAUTHN_ORIGIN: z.string().min(1, 'WEBAUTHN_ORIGIN is required'),
+  // Lembretes: fuso usado para interpretar dia/horário configurados pelo usuário.
+  REMINDERS_TZ: z.string().default('America/Sao_Paulo'),
+  // Canais de notificação — todos opcionais; canal sem config vira no-op.
+  DISCORD_WEBHOOK_URL: z.string().optional(),
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional(),
+  // URL pública do app web, usada nos links das notificações.
+  WEB_APP_URL: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);
