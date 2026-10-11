@@ -1,4 +1,11 @@
+import { accountRoutes } from './handlers/accounts';
+import { categoryRoutes } from './handlers/categories';
+import { transactionRoutes } from './handlers/transactions';
 import type { Route } from './router';
 
 // Tabela de endpoints da API falsa — um bloco por entidade, espelhando backend/src/routes/.
-export const routes: Route[] = [];
+export const routes: Route[] = [
+  ...accountRoutes,
+  ...categoryRoutes,
+  ...transactionRoutes,
+];
