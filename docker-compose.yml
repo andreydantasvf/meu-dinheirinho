@@ -27,31 +27,5 @@ services:
     depends_on:
       - api
 
-  # Production stage, only started via `docker compose --profile prod up --build`.
-  api-prod:
-    profiles: ['prod']
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: prod
-    restart: unless-stopped
-    env_file: ./backend/.env
-    ports:
-      - '3000:3000'
-    volumes:
-      - api-data:/app/prisma
-
-  web-prod:
-    profiles: ['prod']
-    build:
-      context: ./web
-      dockerfile: Dockerfile
-      target: prod
-    restart: unless-stopped
-    ports:
-      - '80:80'
-    depends_on:
-      - api-prod
-
 volumes:
   api-data:
