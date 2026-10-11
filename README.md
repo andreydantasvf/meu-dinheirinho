@@ -2,7 +2,7 @@
 
 App de controle financeiro pessoal: entradas e saídas, cartão de crédito com fatura e limite, compras parceladas, gastos fixos e lembretes. É um PWA que você instala no iPhone pelo Safari e hospeda você mesmo (self-hosted, single-user).
 
-**[▶ Abrir a demo](https://SEU-PROJETO-DEMO.vercel.app)**: roda inteira no navegador, com dados fictícios; nada sai do seu dispositivo.
+**[▶ Abrir a demo](https://meu-dinheirinho-demo.vercel.app)**: roda inteira no navegador, com dados fictícios; nada sai do seu dispositivo.
 
 <p>
   <img src="docs/screenshots/home.png" alt="Home" width="240" />
