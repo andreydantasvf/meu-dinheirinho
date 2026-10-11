@@ -71,3 +71,6 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Build (demo)
+        run: pnpm build:demo

@@ -72,6 +72,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Build (demo)
+        run: pnpm build:demo
+
   # Vercel deploys the web/ frontend itself via its native GitHub integration
   # (configured once during Vercel project setup — see docs/deployment.md).
   # No Vercel step belongs here.
