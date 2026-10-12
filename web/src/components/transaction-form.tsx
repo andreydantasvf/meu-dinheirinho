@@ -631,9 +631,16 @@ export function TransactionForm({
   return (
     <ModalRoute title={isEditing ? 'Editar transação' : 'Nova transação'}>
       {isLocked && (
-        <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-300">
+        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
           Esta transação faz parte de uma compra parcelada e não pode ser
-          editada diretamente.
+          editada diretamente.{' '}
+          <Link
+            to={`/compras/${transaction?.purchaseId}`}
+            replace
+            className="font-bold underline underline-offset-2"
+          >
+            Editar a compra
+          </Link>
         </div>
       )}
 
