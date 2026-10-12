@@ -35,3 +35,15 @@ export function ModalRoute({
     </div>
   );
 }
+
+// Rodapé do formulário de uma rota modal: fica grudado no fim da área rolável,
+// então o botão de salvar aparece sem precisar rolar até o fim do formulário.
+// `-mx-5 -mb-5 -bottom-5` anulam o padding do conteúdo do ModalRoute (o sticky
+// conta a partir da borda de padding do container rolável).
+export function ModalFooter({ children }: { children: ReactNode }) {
+  return (
+    <div className="sticky -bottom-5 z-10 -mx-5 -mb-5 mt-4 border-t border-border bg-background/95 px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur md:pb-5">
+      {children}
+    </div>
+  );
+}

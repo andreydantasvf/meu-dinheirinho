@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { IconMinus, IconPlus } from '@tabler/icons-react';
 import { toast } from 'sonner';
-import { ModalRoute } from '../components/ModalRoute';
+import { ModalFooter, ModalRoute } from '../components/ModalRoute';
 import { EditRouteGate } from '@/components/edit-route-gate';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -379,19 +379,21 @@ function PurchaseForm({ purchase }: { purchase: Purchase | undefined }) {
           </label>
         )}
 
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="mt-4 h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
-        >
-          {isSubmitting
-            ? 'Salvando parcelas...'
-            : isSubscription
-              ? 'Criar assinatura'
-              : isEditing
-                ? `Atualizar ${numeroParcelas} lançamentos`
-                : `Criar ${numeroParcelas} lançamentos`}
-        </Button>
+        <ModalFooter>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
+          >
+            {isSubmitting
+              ? 'Salvando parcelas...'
+              : isSubscription
+                ? 'Criar assinatura'
+                : isEditing
+                  ? `Atualizar ${numeroParcelas} lançamentos`
+                  : `Criar ${numeroParcelas} lançamentos`}
+          </Button>
+        </ModalFooter>
       </form>
     </ModalRoute>
   );

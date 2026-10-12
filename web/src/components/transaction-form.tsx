@@ -14,7 +14,7 @@ import type {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { ModalRoute } from './ModalRoute';
+import { ModalFooter, ModalRoute } from './ModalRoute';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -494,13 +494,15 @@ function DespesaForm({
           transaction={isEditing ? transaction : undefined}
         />
 
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="mt-4 h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
-        >
-          {isSubmitting ? 'Salvando...' : 'Salvar transação'}
-        </Button>
+        <ModalFooter>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
+          >
+            {isSubmitting ? 'Salvando...' : 'Salvar transação'}
+          </Button>
+        </ModalFooter>
       </fieldset>
     </form>
   );
@@ -602,13 +604,15 @@ function ReceitaForm({
           transaction={isEditing ? transaction : undefined}
         />
 
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="mt-4 h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
-        >
-          {isSubmitting ? 'Salvando...' : 'Salvar transação'}
-        </Button>
+        <ModalFooter>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
+          >
+            {isSubmitting ? 'Salvando...' : 'Salvar transação'}
+          </Button>
+        </ModalFooter>
       </fieldset>
     </form>
   );
