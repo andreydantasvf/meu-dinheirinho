@@ -1,5 +1,5 @@
 import type { Category } from '@/types/entities';
-import { internalError } from '../errors';
+import { DemoHttpError } from '../errors';
 import type { Route } from '../router';
 import type { DemoDb } from '../types';
 import {
@@ -60,7 +60,12 @@ function removeCategory(db: DemoDb, id: string): void {
     db.transactions.some((t) => t.categoryId === id) ||
     db.purchases.some((p) => p.categoryId === id) ||
     db.fixedExpenses.some((f) => f.categoryId === id);
-  if (emUso) throw internalError();
+  if (emUso) {
+    throw new DemoHttpError(
+      409,
+      'Não é possível excluir uma categoria com lançamentos',
+    );
+  }
   db.categories = db.categories.filter((c) => c.id !== id);
 }
 
