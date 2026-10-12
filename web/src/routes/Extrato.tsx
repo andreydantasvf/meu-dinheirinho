@@ -27,17 +27,38 @@ import { formatMoney } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import type { Transaction } from '@/types/entities';
 import { TransactionRow } from '@/components/transaction-row';
+import {
+  isMonth,
+  isNonEmpty,
+  useSearchParamState,
+} from '@/hooks/use-search-param-state';
 import { DeleteTransactionDialog } from '@/components/delete-transaction-dialog';
 
 const ALL = 'all';
 type TypeFilter = 'ALL' | 'RECEITA' | 'DESPESA';
 
+function isTypeFilter(value: string): value is TypeFilter {
+  return value === 'ALL' || value === 'RECEITA' || value === 'DESPESA';
+}
+
 export default function Extrato() {
   const navigate = useNavigate();
-  const [mes, setMes] = useState(currentMonth());
-  const [tipoFilter, setTipoFilter] = useState<TypeFilter>('ALL');
-  const [categoriaId, setCategoriaId] = useState(ALL);
-  const [accountId, setAccountId] = useState(ALL);
+  const [mes, setMes] = useSearchParamState('mes', currentMonth(), isMonth);
+  const [tipoFilter, setTipoFilter] = useSearchParamState<TypeFilter>(
+    'tipo',
+    'ALL',
+    isTypeFilter,
+  );
+  const [categoriaId, setCategoriaId] = useSearchParamState(
+    'categoria',
+    ALL,
+    isNonEmpty,
+  );
+  const [accountId, setAccountId] = useSearchParamState(
+    'conta',
+    ALL,
+    isNonEmpty,
+  );
   const [deleting, setDeleting] = useState<Transaction | undefined>(undefined);
 
   const { data: categories } = useCategories();
