@@ -262,7 +262,7 @@ function PurchaseForm({ purchase }: { purchase: Purchase | undefined }) {
             <Input
               id="descricao"
               placeholder="Ex: Geladeira Frost Free"
-              className="h-12 rounded-xl border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground"
+              className="h-12 rounded-xl border-border bg-card px-4 text-base md:text-sm text-foreground placeholder:text-muted-foreground"
               {...register('descricao')}
             />
             <FieldError errors={[errors.descricao]} />
@@ -352,7 +352,7 @@ function PurchaseForm({ purchase }: { purchase: Purchase | undefined }) {
                   id="terceiro"
                   placeholder="Ex: Maria"
                   maxLength={60}
-                  className="h-12 rounded-xl border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground"
+                  className="h-12 rounded-xl border-border bg-card px-4 text-base md:text-sm text-foreground placeholder:text-muted-foreground"
                   {...register('terceiro')}
                 />
                 <FieldError errors={[errors.terceiro]} />

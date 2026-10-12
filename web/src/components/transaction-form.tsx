@@ -336,7 +336,7 @@ function TransactionCommonFields<T extends CommonFormValues>({
         <Input
           id="descricao"
           placeholder="Ex: Mercado Bom Preço"
-          className="h-12 rounded-xl border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground"
+          className="h-12 rounded-xl border-border bg-card px-4 text-base md:text-sm text-foreground placeholder:text-muted-foreground"
           {...register('descricao' as Path<T>)}
         />
         <FieldError errors={[errors.descricao as { message?: string }]} />

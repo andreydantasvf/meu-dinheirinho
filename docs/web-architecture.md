@@ -20,6 +20,7 @@ Estratégia `injectManifest` com SW próprio em `src/sw.ts` (antes era `generate
 
 - `apple-mobile-web-app-capable` + `apple-touch-icon` (180×180) + `theme-color` no `index.html` são obrigatórios para o Safari oferecer "Adicionar à Tela de Início" com aparência de app nativo (sem barra de navegador). O `<link rel="icon">` do manifest sozinho **não** é suficiente no iOS.
 - `viewport-fit=cover` no `<meta name="viewport">` habilita `env(safe-area-inset-*)` em CSS — usado na tab bar inferior (`pb-[env(safe-area-inset-bottom)]`) e no cabeçalho das rotas modais (`pt-[env(safe-area-inset-top)]`), para não ficar por baixo do notch/home indicator.
+- **Campo editável com fonte < 16px faz o Safari dar zoom ao focar** (e a tela fica ampliada depois do blur). O `Input` do shadcn já usa `text-base md:text-sm`; não sobrescrever com `text-sm`/`text-xs` puro em inputs — usar `text-base md:text-sm`. Não usamos `maximum-scale=1` no viewport porque isso também bloqueia o zoom de pinça (acessibilidade) em outros navegadores.
 - Os ícones em `public/icon-{180,192,512}.png` são placeholders sólidos gerados por script (sem arte de marca ainda) — trocar por ícones reais é um follow-up de produto, não técnico.
 
 ## Estilização
