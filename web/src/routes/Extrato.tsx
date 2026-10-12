@@ -249,6 +249,7 @@ export default function Extrato() {
       {/* Grouped Days */}
       {groups.map(([day, items]) => {
         const dayTotal = items.reduce((acc, item) => {
+          if (item.terceiro) return acc;
           const val = Number(item.valor);
           return item.tipo === 'RECEITA' ? acc + val : acc - val;
         }, 0);

@@ -44,6 +44,8 @@ export type Transaction = {
   fixedExpenseId: string | null;
   parcelaNumero: number | null;
   parcelaTotal: number | null;
+  // Nome de quem comprou (copiado da compra): entra na fatura, não no gasto.
+  terceiro: string | null;
   createdAt: string;
 };
 
@@ -55,6 +57,7 @@ export type Purchase = {
   descricao: string;
   dataCompra: string;
   numeroParcelas: number;
+  terceiro: string | null;
   createdAt: string;
 };
 
@@ -76,6 +79,7 @@ export type FaturaData = {
   faturaAtual: string;
   faturasFuturas: Array<{ mes: string; total: string }>;
   limiteDisponivel: string;
+  terceirosFaturaAtual: Array<{ nome: string; total: string }>;
 };
 
 export type ReminderTipo = 'ENTRADA' | 'SAIDA';

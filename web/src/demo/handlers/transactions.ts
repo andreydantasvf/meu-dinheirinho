@@ -38,6 +38,7 @@ export function createTransaction(
     fixedExpenseId: null,
     parcelaNumero: null,
     parcelaTotal: null,
+    terceiro: null,
     createdAt: nowIso(),
   };
   assertRefs(db, transaction.accountId, transaction.categoryId);

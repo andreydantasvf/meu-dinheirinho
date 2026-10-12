@@ -12,4 +12,4 @@ export const persister = createSyncStoragePersister({
 
 // Bump this whenever a cached query's data shape changes, so an old persisted
 // cache from a previous build gets discarded instead of restored and crashing the UI.
-export const CACHE_BUSTER = 'v1';
+export const CACHE_BUSTER = 'v2';

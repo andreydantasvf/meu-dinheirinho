@@ -37,6 +37,7 @@ function fixedTransaction(
     fixedExpenseId: expense.id,
     parcelaNumero: null,
     parcelaTotal: null,
+    terceiro: null,
     createdAt: nowIso(),
   };
 }

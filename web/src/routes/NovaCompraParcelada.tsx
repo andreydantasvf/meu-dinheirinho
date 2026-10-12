@@ -30,17 +30,29 @@ import {
 import { useCreateFixedExpense } from '@/hooks/use-fixed-expenses';
 import type { Purchase } from '@/types/entities';
 
-const purchaseSchema = z.object({
-  descricao: z.string().trim().min(1, 'Informe uma descrição'),
-  valorTotal: z
-    .string()
-    .refine((value) => Number(value) > 0, 'Informe um valor maior que zero'),
-  numeroParcelas: z.number().int().min(1, 'Informe ao menos 1 parcela'),
-  categoryId: z.string().min(1, 'Selecione uma categoria'),
-  accountId: z.string().min(1, 'Selecione uma conta'),
-  dataCompra: z.string().min(1, 'Selecione uma data'),
-  isSubscription: z.boolean().optional(),
-});
+const purchaseSchema = z
+  .object({
+    descricao: z.string().trim().min(1, 'Informe uma descrição'),
+    valorTotal: z
+      .string()
+      .refine((value) => Number(value) > 0, 'Informe um valor maior que zero'),
+    numeroParcelas: z.number().int().min(1, 'Informe ao menos 1 parcela'),
+    categoryId: z.string().min(1, 'Selecione uma categoria'),
+    accountId: z.string().min(1, 'Selecione uma conta'),
+    dataCompra: z.string().min(1, 'Selecione uma data'),
+    isSubscription: z.boolean().optional(),
+    isTerceiro: z.boolean().optional(),
+    terceiro: z.string().trim().max(60, 'Use no máximo 60 caracteres'),
+  })
+  .superRefine((values, ctx) => {
+    if (values.isTerceiro && !values.terceiro) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['terceiro'],
+        message: 'Informe o nome de quem comprou',
+      });
+    }
+  });
 
 type PurchaseFormValues = z.infer<typeof purchaseSchema>;
 
@@ -52,6 +64,8 @@ const emptyValues: PurchaseFormValues = {
   accountId: '',
   dataCompra: new Date().toISOString(),
   isSubscription: false,
+  isTerceiro: false,
+  terceiro: '',
 };
 
 function toFormValues(purchase: Purchase): PurchaseFormValues {
@@ -63,6 +77,8 @@ function toFormValues(purchase: Purchase): PurchaseFormValues {
     accountId: purchase.accountId,
     dataCompra: purchase.dataCompra,
     isSubscription: false,
+    isTerceiro: Boolean(purchase.terceiro),
+    terceiro: purchase.terceiro ?? '',
   };
 }
 
@@ -92,6 +108,7 @@ export default function NovaCompraParcelada() {
   const valorTotal = watch('valorTotal');
   const numeroParcelas = watch('numeroParcelas');
   const isSubscription = watch('isSubscription');
+  const isTerceiro = watch('isTerceiro');
   const despesaCategories =
     categories?.filter((category) => category.tipo === 'DESPESA') ?? [];
   const creditCards =
@@ -101,7 +118,13 @@ export default function NovaCompraParcelada() {
 
   async function onSubmit(values: PurchaseFormValues) {
     try {
-      if (values.isSubscription && !isEditing) {
+      const { isSubscription, isTerceiro, terceiro, ...purchaseValues } =
+        values;
+      const purchaseInput = {
+        ...purchaseValues,
+        terceiro: isTerceiro ? terceiro : null,
+      };
+      if (isSubscription && !isEditing) {
         await createFixedExpense.mutateAsync({
           accountId: values.accountId,
           categoryId: values.categoryId,
@@ -111,10 +134,10 @@ export default function NovaCompraParcelada() {
         });
         toast.success('Assinatura criada com sucesso');
       } else if (isEditing && id) {
-        await updatePurchase.mutateAsync({ id, ...values });
+        await updatePurchase.mutateAsync({ id, ...purchaseInput });
         toast.success('Compra parcelada atualizada com sucesso');
       } else {
-        await createPurchase.mutateAsync(values);
+        await createPurchase.mutateAsync(purchaseInput);
         toast.success('Compra parcelada criada com sucesso');
       }
       navigate(-1);
@@ -279,7 +302,47 @@ export default function NovaCompraParcelada() {
           </Field>
         </FieldGroup>
 
-        {!isEditing && (
+        {/* Assinatura e compra de terceiro são excludentes: um esconde o outro. */}
+        {!isSubscription && (
+          <div className="flex flex-col gap-3">
+            <label className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-foreground/5 cursor-pointer transition-colors">
+              <div className="flex flex-1 flex-col">
+                <span className="text-sm font-bold text-foreground">
+                  Compra de outra pessoa?
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Entra na fatura, mas não nos seus gastos
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                className="size-5 rounded border-border text-primary focus:ring-primary/20 bg-background"
+                {...register('isTerceiro')}
+              />
+            </label>
+
+            {isTerceiro && (
+              <Field className="flex flex-col gap-2">
+                <FieldLabel
+                  htmlFor="terceiro"
+                  className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
+                >
+                  Nome de quem comprou
+                </FieldLabel>
+                <Input
+                  id="terceiro"
+                  placeholder="Ex: Maria"
+                  maxLength={60}
+                  className="h-12 rounded-xl border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground"
+                  {...register('terceiro')}
+                />
+                <FieldError errors={[errors.terceiro]} />
+              </Field>
+            )}
+          </div>
+        )}
+
+        {!isEditing && !isTerceiro && (
           <label className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-foreground/5 cursor-pointer transition-colors">
             <div className="flex flex-1 flex-col">
               <span className="text-sm font-bold text-foreground">
