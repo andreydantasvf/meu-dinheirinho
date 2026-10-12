@@ -40,12 +40,14 @@ Transaction (lançamento)
 ├── valor, descricao, data
 ├── tipo (receita | despesa)
 ├── purchaseId (nullable — se veio de uma compra parcelada)
-└── parcela_numero, parcela_total (nullable)
+├── parcela_numero, parcela_total (nullable)
+└── terceiro (nullable — copiado da Purchase)
 
 Purchase (compra parcelada)
 ├── id, accountId, categoryId
 ├── valor_total, descricao, data_compra
 ├── numero_parcelas
+├── terceiro (nullable — nome de quem comprou: entra na fatura, não no meu gasto)
 └── gera N Transactions automaticamente (uma por mês, já com data de vencimento calculada)
 ```
 

@@ -63,6 +63,10 @@ Lembretes (`Reminder`) são um módulo separado de `Transaction`, de propósito.
 
 Agendamento: `proximoDisparo` (UTC) é calculado por uma função pura (`services/reminder-schedule.ts`) que converte dia/horário locais (`REMINDERS_TZ`) para UTC via `Intl.DateTimeFormat`, sem lib de timezone. O cron (`jobs/reminder.job.ts`, a cada 5 min) busca `ativo && proximoDisparo <= agora`, notifica todos os canais configurados (`src/notifications/`: Discord via webhook, Web Push via `web-push`) e avança `proximoDisparo`. Canais são opcionais por env — sem config, viram no-op.
 
+### Compras de terceiros
+
+Uma compra feita no cartão por outra pessoa (que depois reembolsa) é uma Purchase com `terceiro` preenchido (nome livre, sem tabela de pessoas). O campo é copiado para cada Transaction gerada, para que os relatórios filtrem sem join. Regra: entra em tudo que é **fatura** (`faturaAtualPorCartao`, `/accounts/:id/fatura`, `limiteDisponivel`), porque o cartão foi usado; fica fora de tudo que é **meu gasto** (`saldoMes`, `gastoPorCategoria` e os totais que o web calcula a partir do `/extrato`). Como não existe "pagar fatura" nem status pago/pendente (ver Lembretes), o dinheiro que sai da conta para pagar a parte do terceiro também não aparece no saldo: o modelo assume que o reembolso cobre esse valor. A categoria continua obrigatória (o schema não mudou), só não é contada. Fica só na Purchase (não em `POST /transactions`) porque o web só lança no cartão por compra parcelada, que aceita 1x.
+
 ## Web
 
 Ver [`web-architecture.md`](./web-architecture.md) para as decisões técnicas completas do app web (Vite/PWA, iOS install, WebAuthn, roteamento, etc.) — inclusive por que ele substituiu o app mobile React Native/Expo que existia antes.
