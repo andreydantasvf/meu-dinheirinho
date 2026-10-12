@@ -39,8 +39,8 @@ export function ControlledHeroMoneyInput<T extends FieldValues>({
 }) {
   const { field } = useController({ control, name });
   return (
-    <div className="flex items-baseline justify-center gap-1 md:gap-3 w-full px-4">
-      <span className="text-3xl md:text-5xl font-bold text-muted-foreground shrink-0">R$</span>
+    // Sem prefixo "R$" separado: o MoneyInput já formata com a moeda.
+    <div className="flex items-baseline justify-center w-full px-4">
       <MoneyInput
         id={name}
         value={field.value}
