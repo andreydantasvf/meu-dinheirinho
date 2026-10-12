@@ -12,14 +12,21 @@ export function CardWallet({
   cards,
   onEdit,
   onDelete,
+  initialAccountId,
   onFocusChange,
 }: {
   cards: Account[];
+  initialAccountId?: string;
   onEdit: (account: Account) => void;
   onDelete: (account: Account) => void;
   onFocusChange: (accountId: string | undefined) => void;
 }) {
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(() =>
+    Math.max(
+      0,
+      cards.findIndex((card) => card.id === initialAccountId),
+    ),
+  );
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dismissingDir, setDismissingDir] = useState<number | null>(null);
