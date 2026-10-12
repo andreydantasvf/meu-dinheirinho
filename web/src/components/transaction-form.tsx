@@ -385,6 +385,9 @@ function DespesaForm({
     // query). `values` keeps the form in sync once the real data lands,
     // instead of leaving it stuck on the empty defaultValues forever.
     values: transaction ? despesaDefaults(transaction) : undefined,
+    // Reabrir uma transação mostra primeiro o cache e depois o refetch chega:
+    // sem isso o reset do `values` apagaria o que o usuário já digitou.
+    resetOptions: { keepDirtyValues: true },
   });
 
   const selectedCategoryId = watch('categoryId');
@@ -526,6 +529,7 @@ function ReceitaForm({
     // See the matching comment in DespesaForm: keeps the form synced if
     // `transaction` is still undefined on the render that mounts this form.
     values: transaction ? receitaDefaults(transaction) : undefined,
+    resetOptions: { keepDirtyValues: true },
   });
 
   const selectedCategoryId = watch('categoryId');

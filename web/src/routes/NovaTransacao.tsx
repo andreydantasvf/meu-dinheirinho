@@ -1,25 +1,31 @@
 import { useParams } from 'react-router-dom';
-import { ModalRoute } from '../components/ModalRoute';
 import { useTransaction } from '@/hooks/use-transactions';
 import { TransactionForm } from '@/components/transaction-form';
+import { EditRouteGate } from '@/components/edit-route-gate';
 
 export default function NovaTransacao() {
   const { id } = useParams();
-  const isEditing = Boolean(id);
-  const { data: transaction, isLoading: isLoadingTransaction } =
-    useTransaction(id);
+  const transactionQuery = useTransaction(id);
 
-  if (isEditing && isLoadingTransaction) {
+  if (!id) {
     return (
-      <ModalRoute title="Transação">
-        <p className="py-8 text-center text-sm font-medium text-muted-foreground">
-          Carregando...
-        </p>
-      </ModalRoute>
+      <TransactionForm
+        transaction={undefined}
+        isEditing={false}
+        id={undefined}
+      />
     );
   }
 
   return (
-    <TransactionForm transaction={transaction} isEditing={isEditing} id={id} />
+    <EditRouteGate
+      title="Transação"
+      notFoundMessage="Transação não encontrada. Ela pode ter sido excluída."
+      query={transactionQuery}
+    >
+      {(transaction) => (
+        <TransactionForm key={id} transaction={transaction} isEditing id={id} />
+      )}
+    </EditRouteGate>
   );
 }
