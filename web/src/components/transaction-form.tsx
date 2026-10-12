@@ -31,6 +31,7 @@ import {
   ControlledSelect,
 } from './controlled-fields';
 import { cn } from '@/lib/utils';
+import { todayLocalIso } from '@/lib/date';
 import { ApiError } from '@/lib/api';
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
@@ -70,24 +71,30 @@ type CommonFormValues = z.infer<z.ZodObject<typeof commonFieldsSchema>>;
 type DespesaFormValues = z.infer<typeof despesaSchema>;
 type ReceitaFormValues = z.infer<typeof receitaSchema>;
 
-const emptyDespesaValues: DespesaFormValues = {
-  valor: '0.00',
-  categoryId: '',
-  accountId: '',
-  descricao: '',
-  data: new Date().toISOString(),
-  isFixedExpense: false,
-  lembrarTodoMes: false,
-};
+// Funções (e não constantes de módulo): a data padrão é "hoje" no momento em que
+// o formulário abre, não quando o módulo carregou.
+function emptyDespesaValues(): DespesaFormValues {
+  return {
+    valor: '0.00',
+    categoryId: '',
+    accountId: '',
+    descricao: '',
+    data: todayLocalIso(),
+    isFixedExpense: false,
+    lembrarTodoMes: false,
+  };
+}
 
-const emptyReceitaValues: ReceitaFormValues = {
-  valor: '0.00',
-  categoryId: '',
-  accountId: '',
-  descricao: '',
-  data: new Date().toISOString(),
-  lembrarTodoMes: false,
-};
+function emptyReceitaValues(): ReceitaFormValues {
+  return {
+    valor: '0.00',
+    categoryId: '',
+    accountId: '',
+    descricao: '',
+    data: todayLocalIso(),
+    lembrarTodoMes: false,
+  };
+}
 
 function toCommonValues(transaction: Transaction): CommonFormValues {
   return {
@@ -112,7 +119,7 @@ function despesaDefaults(
       lembrarTodoMes: false,
     };
   }
-  return emptyDespesaValues;
+  return emptyDespesaValues();
 }
 
 function receitaDefaults(
@@ -121,7 +128,7 @@ function receitaDefaults(
   if (transaction?.tipo === 'RECEITA') {
     return { ...toCommonValues(transaction), lembrarTodoMes: false };
   }
-  return emptyReceitaValues;
+  return emptyReceitaValues();
 }
 
 // Lembrete é um módulo à parte (não mexe no saldo) — o toggle só cria um Reminder

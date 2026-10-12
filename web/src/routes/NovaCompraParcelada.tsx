@@ -20,6 +20,7 @@ import {
 } from '@/components/controlled-fields';
 import { ApiError } from '@/lib/api';
 import { apiStringToCents, centsToApiString, formatMoney } from '@/lib/money';
+import { todayLocalIso } from '@/lib/date';
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
 import {
@@ -56,17 +57,21 @@ const purchaseSchema = z
 
 type PurchaseFormValues = z.infer<typeof purchaseSchema>;
 
-const emptyValues: PurchaseFormValues = {
-  descricao: '',
-  valorTotal: '0.00',
-  numeroParcelas: 2,
-  categoryId: '',
-  accountId: '',
-  dataCompra: new Date().toISOString(),
-  isSubscription: false,
-  isTerceiro: false,
-  terceiro: '',
-};
+// Função (e não constante de módulo): a data padrão é "hoje" no momento em que o
+// formulário abre, não quando o módulo carregou.
+function emptyValues(): PurchaseFormValues {
+  return {
+    descricao: '',
+    valorTotal: '0.00',
+    numeroParcelas: 2,
+    categoryId: '',
+    accountId: '',
+    dataCompra: todayLocalIso(),
+    isSubscription: false,
+    isTerceiro: false,
+    terceiro: '',
+  };
+}
 
 function toFormValues(purchase: Purchase): PurchaseFormValues {
   return {
@@ -102,7 +107,7 @@ export default function NovaCompraParcelada() {
     formState: { errors, isSubmitting },
   } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
-    values: purchase ? toFormValues(purchase) : emptyValues,
+    values: purchase ? toFormValues(purchase) : emptyValues(),
   });
 
   const valorTotal = watch('valorTotal');
