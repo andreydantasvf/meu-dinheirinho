@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
+import { invalidateAfterTransactionChange } from './use-transactions';
 
 export type CreateFixedExpensePayload = {
   accountId: string;
@@ -19,12 +20,7 @@ export function useCreateFixedExpense() {
         body: data,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['extrato'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      // We should probably invalidate fatura too, wait, queryKeys.fatura(accountId)
-      // For now just hardcoded invalidation is fine, or we can use queryKeys.
-    },
+    onSuccess: () => invalidateAfterTransactionChange(queryClient),
   });
 }
 
@@ -38,8 +34,7 @@ export function useDeleteFixedExpense() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['extrato'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      invalidateAfterTransactionChange(queryClient);
       // Cancelar um gasto fixo desativa os lembretes ligados a ele no backend.
       queryClient.invalidateQueries({ queryKey: ['reminders'] });
     },

@@ -10,6 +10,7 @@ export const queryKeys = {
   transaction: (id: string) => ['transactions', id] as const,
   extrato: (filters: ExtratoFilters) => ['extrato', filters] as const,
   purchases: ['purchases'] as const,
+  purchase: (id: string) => ['purchases', id] as const,
   dashboard: (mes?: string) => ['dashboard', mes] as const,
   fatura: (accountId: string) => ['fatura', accountId] as const,
   reminders: ['reminders'] as const,

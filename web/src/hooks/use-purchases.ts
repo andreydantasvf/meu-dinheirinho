@@ -13,16 +13,17 @@ export type PurchaseInput = {
   terceiro: string | null;
 };
 
+// Editar uma compra regenera as parcelas (transações) e pode trocar o cartão,
+// então invalida o detalhe das transações e a fatura de todos os cartões, não
+// só a do cartão novo.
 function invalidateAfterPurchaseChange(
   queryClient: ReturnType<typeof useQueryClient>,
-  accountId?: string,
 ) {
   queryClient.invalidateQueries({ queryKey: queryKeys.purchases });
+  queryClient.invalidateQueries({ queryKey: ['transactions'] });
   queryClient.invalidateQueries({ queryKey: ['extrato'] });
   queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-  if (accountId) {
-    queryClient.invalidateQueries({ queryKey: queryKeys.fatura(accountId) });
-  }
+  queryClient.invalidateQueries({ queryKey: ['fatura'] });
 }
 
 export function usePurchases() {
@@ -34,7 +35,7 @@ export function usePurchases() {
 
 export function usePurchase(id: string | undefined) {
   return useQuery({
-    queryKey: ['purchases', id],
+    queryKey: queryKeys.purchase(id ?? ''),
     queryFn: () => apiFetch<Purchase>(`/purchases/${id}`),
     enabled: Boolean(id),
   });
@@ -45,8 +46,7 @@ export function useCreatePurchase() {
   return useMutation({
     mutationFn: (input: PurchaseInput) =>
       apiFetch<Purchase>('/purchases', { method: 'POST', body: input }),
-    onSuccess: (_data, variables) =>
-      invalidateAfterPurchaseChange(queryClient, variables.accountId),
+    onSuccess: () => invalidateAfterPurchaseChange(queryClient),
   });
 }
 
@@ -55,17 +55,15 @@ export function useUpdatePurchase() {
   return useMutation({
     mutationFn: ({ id, ...input }: PurchaseInput & { id: string }) =>
       apiFetch<Purchase>(`/purchases/${id}`, { method: 'PUT', body: input }),
-    onSuccess: (_data, variables) =>
-      invalidateAfterPurchaseChange(queryClient, variables.accountId),
+    onSuccess: () => invalidateAfterPurchaseChange(queryClient),
   });
 }
 
 export function useDeletePurchase() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id }: { id: string; accountId?: string }) =>
+    mutationFn: ({ id }: { id: string }) =>
       apiFetch<void>(`/purchases/${id}`, { method: 'DELETE' }),
-    onSuccess: (_data, variables) =>
-      invalidateAfterPurchaseChange(queryClient, variables.accountId),
+    onSuccess: () => invalidateAfterPurchaseChange(queryClient),
   });
 }
