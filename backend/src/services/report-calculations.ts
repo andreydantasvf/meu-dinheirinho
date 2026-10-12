@@ -75,6 +75,29 @@ export function agruparFaturaAtualPorCartao(
   return [...totals.values()];
 }
 
+export type TransactionComTerceiro = {
+  valor: Prisma.Decimal;
+  terceiro: string | null;
+};
+
+export type TotalPorTerceiro = { nome: string; total: Prisma.Decimal };
+
+export function agruparTerceiros(
+  transactions: TransactionComTerceiro[],
+): TotalPorTerceiro[] {
+  const totals = new Map<string, Prisma.Decimal>();
+  for (const t of transactions) {
+    if (!t.terceiro) continue;
+    totals.set(
+      t.terceiro,
+      (totals.get(t.terceiro) ?? new Prisma.Decimal(0)).plus(t.valor),
+    );
+  }
+  return [...totals.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([nome, total]) => ({ nome, total }));
+}
+
 export function mesParaIntervalo(mes: string): { inicio: Date; fim: Date } {
   const [ano, mesNumero] = mes.split('-').map(Number);
   const inicio = new Date(Date.UTC(ano, mesNumero - 1, 1));

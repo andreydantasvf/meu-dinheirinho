@@ -31,6 +31,7 @@ describe('purchaseService', () => {
       descricao: 'Notebook',
       dataCompra: new Date('2026-03-15'),
       numeroParcelas: 3,
+      terceiro: null,
     };
     const installments = [
       {
@@ -86,6 +87,7 @@ describe('purchaseService', () => {
       descricao: 'Tablet',
       dataCompra: new Date('2026-04-15'),
       numeroParcelas: 5,
+      terceiro: null,
     };
     const installments = [
       {
@@ -128,6 +130,7 @@ describe('purchaseService', () => {
       descricao: 'Tablet',
       dataCompra: new Date('2026-04-15'),
       numeroParcelas: 5,
+      terceiro: null,
     };
 
     await expect(

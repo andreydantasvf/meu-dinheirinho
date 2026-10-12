@@ -35,6 +35,7 @@ export const purchaseRepository = {
           purchaseId: purchase.id,
           parcelaNumero: installment.parcelaNumero,
           parcelaTotal: installment.parcelaTotal,
+          terceiro: data.terceiro,
         })),
       });
       return purchase;
@@ -60,6 +61,7 @@ export const purchaseRepository = {
           purchaseId: purchase.id,
           parcelaNumero: installment.parcelaNumero,
           parcelaTotal: installment.parcelaTotal,
+          terceiro: data.terceiro,
         })),
       });
       return purchase;
