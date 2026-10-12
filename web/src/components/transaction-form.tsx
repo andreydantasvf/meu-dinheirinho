@@ -236,6 +236,7 @@ function TransactionCommonFields<T extends CommonFormValues>({
   categoryTipo,
   accounts,
   selectedCategoryId,
+  selectedAccountId,
 }: {
   control: Control<T>;
   register: UseFormRegister<T>;
@@ -245,6 +246,7 @@ function TransactionCommonFields<T extends CommonFormValues>({
   categoryTipo: TransactionType;
   accounts: Account[] | undefined;
   selectedCategoryId: string;
+  selectedAccountId: string;
 }) {
   const filteredCategories =
     categories?.filter((category) => category.tipo === categoryTipo) ?? [];
@@ -310,7 +312,11 @@ function TransactionCommonFields<T extends CommonFormValues>({
           name={'accountId' as Path<T>}
           placeholder="Selecione a conta de origem"
           options={(accounts ?? [])
-            .filter((a) => a.tipo !== 'CARTAO_CREDITO')
+            // Cartão não é conta de origem de um lançamento novo, mas uma
+            // assinatura/parcela já lançada num cartão precisa mostrá-lo.
+            .filter(
+              (a) => a.tipo !== 'CARTAO_CREDITO' || a.id === selectedAccountId,
+            )
             .map((account) => ({
               value: account.id,
               label: account.nome,
@@ -391,6 +397,7 @@ function DespesaForm({
   });
 
   const selectedCategoryId = watch('categoryId');
+  const selectedAccountId = watch('accountId');
 
   async function onSubmit(values: DespesaFormValues) {
     try {
@@ -461,6 +468,7 @@ function DespesaForm({
           categoryTipo="DESPESA"
           accounts={accounts}
           selectedCategoryId={selectedCategoryId}
+          selectedAccountId={selectedAccountId}
         />
 
         {!isEditing && (
@@ -533,6 +541,7 @@ function ReceitaForm({
   });
 
   const selectedCategoryId = watch('categoryId');
+  const selectedAccountId = watch('accountId');
 
   async function onSubmit(values: ReceitaFormValues) {
     try {
@@ -585,6 +594,7 @@ function ReceitaForm({
           categoryTipo="RECEITA"
           accounts={accounts}
           selectedCategoryId={selectedCategoryId}
+          selectedAccountId={selectedAccountId}
         />
 
         <RememberMonthlyToggle
