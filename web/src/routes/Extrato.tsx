@@ -237,7 +237,7 @@ export default function Extrato() {
         </p>
       )}
 
-      {!isLoading && groups.length === 0 && (
+      {!isLoading && !isError && groups.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-8 text-center">
           <IconFilter size={32} className="text-muted-foreground mb-2" />
           <p className="text-sm font-medium text-muted-foreground">
