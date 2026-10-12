@@ -5,7 +5,6 @@ import {
   IconChevronRight,
   IconFilter,
 } from '@tabler/icons-react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -15,21 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
-import { useDeleteTransaction, useExtrato } from '@/hooks/use-transactions';
-import { useDeletePurchase } from '@/hooks/use-purchases';
-import { useDeleteFixedExpense } from '@/hooks/use-fixed-expenses';
+import { useExtrato } from '@/hooks/use-transactions';
 import {
   formatDateShort,
   currentMonth,
@@ -37,10 +24,10 @@ import {
   shiftMonth,
 } from '@/lib/date';
 import { formatMoney } from '@/lib/money';
-import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { Transaction } from '@/types/entities';
 import { TransactionRow } from '@/components/transaction-row';
+import { DeleteTransactionDialog } from '@/components/delete-transaction-dialog';
 
 const ALL = 'all';
 type TypeFilter = 'ALL' | 'RECEITA' | 'DESPESA';
@@ -64,9 +51,6 @@ export default function Extrato() {
     categoriaId: categoriaId === ALL ? undefined : categoriaId,
     accountId: accountId === ALL ? undefined : accountId,
   });
-  const deleteTransaction = useDeleteTransaction();
-  const deletePurchase = useDeletePurchase();
-  const deleteFixedExpense = useDeleteFixedExpense();
 
   const categoryMap = useMemo(
     () => new Map(categories?.map((c) => [c.id, c])),
@@ -95,36 +79,6 @@ export default function Extrato() {
     }
     return Array.from(byDay.entries());
   }, [transactions]);
-
-  async function confirmDelete() {
-    if (!deleting) return;
-    try {
-      if (deleting.purchaseId) {
-        await deletePurchase.mutateAsync({
-          id: deleting.purchaseId,
-          accountId: deleting.accountId,
-        });
-        toast.success('Compra parcelada excluída com sucesso');
-      } else if (deleting.fixedExpenseId) {
-        await deleteFixedExpense.mutateAsync({
-          id: deleting.fixedExpenseId,
-        });
-        toast.success('Despesa fixa/assinatura cancelada com sucesso');
-      } else {
-        await deleteTransaction.mutateAsync({
-          id: deleting.id,
-          accountId: deleting.accountId,
-        });
-        toast.success('Transação excluída com sucesso');
-      }
-    } catch (error) {
-      toast.error(
-        error instanceof ApiError ? error.message : 'Não foi possível excluir',
-      );
-    } finally {
-      setDeleting(undefined);
-    }
-  }
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -292,29 +246,10 @@ export default function Extrato() {
         );
       })}
 
-      {/* Delete confirmation dialog */}
-      <AlertDialog
-        open={Boolean(deleting)}
-        onOpenChange={(open) => !open && setDeleting(undefined)}
-      >
-        <AlertDialogContent className="max-w-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir transação?</AlertDialogTitle>
-            <AlertDialogDescription>
-              A transação "{deleting?.descricao}" será removida permanentemente.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive font-bold text-white hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteTransactionDialog
+        transaction={deleting}
+        onClose={() => setDeleting(undefined)}
+      />
     </div>
   );
 }

@@ -1,26 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IconCalendar, IconUser } from '@tabler/icons-react';
-import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { TransactionRow } from '@/components/transaction-row';
+import { DeleteTransactionDialog } from '@/components/delete-transaction-dialog';
 import { useCategories } from '@/hooks/use-categories';
 import { useFatura } from '@/hooks/use-fatura';
-import { useDeleteTransaction, useExtrato } from '@/hooks/use-transactions';
-import { useDeletePurchase } from '@/hooks/use-purchases';
+import { useExtrato } from '@/hooks/use-transactions';
 import { apiStringToCents, centsToApiString, formatMoney } from '@/lib/money';
 import { currentMonth, formatMonthLabel } from '@/lib/date';
-import { ApiError } from '@/lib/api';
 import type { Account, Transaction } from '@/types/entities';
 
 export function CardInvoiceDetails({ account }: { account: Account }) {
@@ -32,8 +20,6 @@ export function CardInvoiceDetails({ account }: { account: Account }) {
     isLoading,
     isError,
   } = useExtrato({ accountId: account.id, mes: currentMonth() });
-  const deleteTransaction = useDeleteTransaction();
-  const deletePurchase = useDeletePurchase();
   const [deleting, setDeleting] = useState<Transaction | undefined>(undefined);
 
   const categoryMap = useMemo(
@@ -53,31 +39,6 @@ export function CardInvoiceDetails({ account }: { account: Account }) {
         apiStringToCents(fatura.faturaAtual),
       )
     : 0;
-
-  async function confirmDelete() {
-    if (!deleting) return;
-    try {
-      if (deleting.purchaseId) {
-        await deletePurchase.mutateAsync({
-          id: deleting.purchaseId,
-          accountId: deleting.accountId,
-        });
-        toast.success('Compra parcelada excluída com sucesso');
-      } else {
-        await deleteTransaction.mutateAsync({
-          id: deleting.id,
-          accountId: deleting.accountId,
-        });
-        toast.success('Transação excluída com sucesso');
-      }
-    } catch (error) {
-      toast.error(
-        error instanceof ApiError ? error.message : 'Não foi possível excluir',
-      );
-    } finally {
-      setDeleting(undefined);
-    }
-  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -181,28 +142,10 @@ export function CardInvoiceDetails({ account }: { account: Account }) {
         )}
       </div>
 
-      <AlertDialog
-        open={Boolean(deleting)}
-        onOpenChange={(open) => !open && setDeleting(undefined)}
-      >
-        <AlertDialogContent className="max-w-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir transação?</AlertDialogTitle>
-            <AlertDialogDescription>
-              A transação "{deleting?.descricao}" será removida permanentemente.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive font-bold text-white hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteTransactionDialog
+        transaction={deleting}
+        onClose={() => setDeleting(undefined)}
+      />
     </div>
   );
 }
