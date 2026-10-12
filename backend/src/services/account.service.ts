@@ -27,6 +27,12 @@ export const accountService = {
 
   async remove(id: string) {
     await this.get(id);
+    if (await accountRepository.isInUse(id)) {
+      throw new AppError(
+        'Não é possível excluir uma conta com lançamentos',
+        409,
+      );
+    }
     return accountRepository.remove(id);
   },
 };

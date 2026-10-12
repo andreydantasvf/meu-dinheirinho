@@ -21,6 +21,16 @@ export const categoryRepository = {
     return prisma.category.update({ where: { id }, data });
   },
 
+  async isInUse(id: string) {
+    const where = { categoryId: id };
+    const [transactions, purchases, fixedExpenses] = await prisma.$transaction([
+      prisma.transaction.count({ where }),
+      prisma.purchase.count({ where }),
+      prisma.fixedExpense.count({ where }),
+    ]);
+    return transactions + purchases + fixedExpenses > 0;
+  },
+
   remove(id: string) {
     return prisma.category.delete({ where: { id } });
   },

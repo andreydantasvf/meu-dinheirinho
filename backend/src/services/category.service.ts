@@ -27,6 +27,12 @@ export const categoryService = {
 
   async remove(id: string) {
     await this.get(id);
+    if (await categoryRepository.isInUse(id)) {
+      throw new AppError(
+        'Não é possível excluir uma categoria com lançamentos',
+        409,
+      );
+    }
     return categoryRepository.remove(id);
   },
 };
