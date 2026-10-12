@@ -74,6 +74,7 @@ model Purchase {
   descricao      String
   dataCompra     DateTime @map("data_compra")
   numeroParcelas Int      @map("numero_parcelas")
+  terceiro       String? // nome de quem comprou; null = compra própria
   createdAt      DateTime @default(now()) @map("created_at")
 
   account      Account       @relation(fields: [accountId], references: [id])
@@ -105,6 +106,7 @@ model Transaction {
   fixedExpenseId String?         @map("fixed_expense_id")
   parcelaNumero  Int?            @map("parcela_numero")
   parcelaTotal   Int?            @map("parcela_total")
+  terceiro       String? // copiado da Purchase: entra na fatura, não no gasto
   createdAt      DateTime        @default(now()) @map("created_at")
 
   account      Account       @relation(fields: [accountId], references: [id])

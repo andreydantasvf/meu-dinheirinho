@@ -63,7 +63,7 @@ Públicas (sem `x-api-token`) — é assim que o app reautentica sem digitar a s
 
 ## Categories
 
-CRUD simples, sem regras de negócio especiais.
+CRUD simples; a única regra de negócio é o `409` ao excluir uma categoria em uso (abaixo).
 
 | Método | Rota | Body |
 |---|---|---|
@@ -76,6 +76,8 @@ CRUD simples, sem regras de negócio especiais.
 - `tipo`: `"RECEITA" | "DESPESA"`
 - `icone`, `cor`: strings livres, opcionais (o mobile decide o que armazenar aqui — ex. nome de ícone e hex color)
 - `metaMensal`: número decimal positivo, opcional — meta de gasto mensal da categoria. Serializado na resposta como **string** (mesma convenção de Decimal, ex. `"300"`), nunca `number`. Só faz sentido para `tipo === "DESPESA"`; o backend não valida isso (é o cliente que garante, mesma filosofia adotada em outros pontos deste endpoint). Enviar `null` explicitamente remove uma meta já definida; omitir o campo em um `PUT` parcial não altera o valor existente.
+
+`DELETE /categories/:id` numa categoria ainda referenciada por transações, compras parceladas ou despesas fixas → `409 { "error": "Não é possível excluir uma categoria com lançamentos" }`.
 
 Response (200/201) de um Category:
 ```json
@@ -111,7 +113,7 @@ Response de um Account:
 }
 ```
 
-⚠️ `DELETE /accounts/:id` numa conta que ainda tem transações/compras associadas falha com **500 genérico** (violação de foreign key não é mapeada para um erro amigável ainda — problema conhecido, não corrigido neste momento, confirmado também depois da migração pra SQLite). Trate isso no cliente como "não foi possível excluir, a conta tem lançamentos" até o backend mapear para um 409.
+`DELETE /accounts/:id` numa conta ainda referenciada por transações, compras parceladas ou despesas fixas → `409 { "error": "Não é possível excluir uma conta com lançamentos" }`. O service checa o uso antes de excluir; a violação de foreign key em si (que daria `500` genérico) não é mapeada.
 
 ## Transactions
 
@@ -127,7 +129,7 @@ CRUD completo, **exceto** para transações que pertencem a uma Purchase (compra
 
 - `tipo`: `"RECEITA" | "DESPESA"`
 - `valor`: número positivo, até 2 casas decimais (`multipleOf(0.01)` — `100.555` é rejeitado com 400, `100.55` é aceito).
-- `purchaseId`, `parcelaNumero`, `parcelaTotal` **não são aceitos no body** — são somente-leitura, preenchidos internamente quando a transação vem de uma Purchase.
+- `purchaseId`, `parcelaNumero`, `parcelaTotal`, `terceiro` **não são aceitos no body** — são somente-leitura, preenchidos internamente quando a transação vem de uma Purchase (`terceiro` é copiado da compra; ver Purchases).
 - `PUT`/`DELETE` numa transação com `purchaseId` preenchido → `400 { "error": "Transação de compra parcelada não pode ser editada diretamente" }`.
 
 Response de uma Transaction:
@@ -144,23 +146,26 @@ Response de uma Transaction:
   "fixedExpenseId": null,
   "parcelaNumero": null,
   "parcelaTotal": null,
+  "terceiro": null,
   "createdAt": "2026-08-05T12:00:00.000Z"
 }
 ```
 
 ## Purchases (compras parceladas)
 
-Criar uma Purchase gera automaticamente N Transactions (uma por parcela). **Não existe `PUT`** — para "editar" uma compra parcelada, exclua e recrie.
+Criar uma Purchase gera automaticamente N Transactions (uma por parcela). O `PUT` substitui a compra inteira (body completo, mesmo schema do `POST`) e regera todas as parcelas.
 
 | Método | Rota | Body |
 |---|---|---|
 | GET | `/purchases` | — |
 | GET | `/purchases/:id` | — |
-| POST | `/purchases` | `{ accountId, categoryId, valorTotal, descricao, dataCompra, numeroParcelas }` |
+| POST | `/purchases` | `{ accountId, categoryId, valorTotal, descricao, dataCompra, numeroParcelas, terceiro? }` |
+| PUT | `/purchases/:id` | mesmo body do `POST` (substituição completa) |
 | DELETE | `/purchases/:id` | — |
 
 - `valorTotal`: número positivo, até 2 casas decimais.
 - `numeroParcelas`: inteiro ≥ 1.
+- `terceiro`: opcional, nome de quem comprou (até 60 caracteres, com trim). Marca uma **compra de terceiro** no cartão: as parcelas entram na fatura e no limite, mas ficam fora do `saldoMes` e do `gastoPorCategoria` do dashboard (ver Reports). Omitido, `null` ou vazio → `null` (compra própria). Como o `PUT` é substituição completa, omitir o campo num `PUT` remove o terceiro. É copiado para cada Transaction gerada.
 - `DELETE /purchases/:id` exclui a Purchase **e** todas as Transactions geradas por ela (cascata atômica).
 
 **Regras de geração de parcelas** (calculadas no backend, não no mobile):
@@ -178,6 +183,7 @@ Response de `POST /purchases` (a Purchase criada, não as transações — use `
   "descricao": "Notebook",
   "dataCompra": "2026-08-01T00:00:00.000Z",
   "numeroParcelas": 3,
+  "terceiro": null,
   "createdAt": "2026-08-08T12:00:00.000Z"
 }
 ```
@@ -290,9 +296,9 @@ Agrega **todas as contas** para o mês informado (calendário, não ciclo de fat
   ]
 }
 ```
-- `saldoMes` = soma(RECEITA) − soma(DESPESA) do mês corrente.
-- `gastoPorCategoria` = apenas DESPESA do mês corrente, agrupado por categoria.
-- `faturaAtualPorCartao` = soma do mês corrente por conta `CARTAO_CREDITO` (⚠️ não filtra por `tipo`, então uma eventual RECEITA numa conta de cartão entraria na soma em vez de abater — improvável no fluxo atual, mas não impedido pelo schema).
+- `saldoMes` = soma(RECEITA) − soma(DESPESA) do mês corrente, **sem** compras de terceiros (`terceiro` preenchido).
+- `gastoPorCategoria` = apenas DESPESA do mês corrente, agrupado por categoria, também **sem** compras de terceiros.
+- `faturaAtualPorCartao` = soma do mês corrente por conta `CARTAO_CREDITO`, **incluindo** compras de terceiros (⚠️ não filtra por `tipo`, então uma eventual RECEITA numa conta de cartão entraria na soma em vez de abater — improvável no fluxo atual, mas não impedido pelo schema).
 
 ### `GET /extrato?mes=YYYY-MM&categoriaId=...&accountId=...`
 
@@ -302,7 +308,7 @@ Agrega **todas as contas** para o mês informado (calendário, não ciclo de fat
 
 ```json
 [
-  { "id": "...", "accountId": "...", "categoryId": "...", "valor": "150.5", "descricao": "Supermercado", "data": "2026-08-05T00:00:00.000Z", "tipo": "DESPESA", "purchaseId": null, "fixedExpenseId": null, "parcelaNumero": null, "parcelaTotal": null, "createdAt": "..." }
+  { "id": "...", "accountId": "...", "categoryId": "...", "valor": "150.5", "descricao": "Supermercado", "data": "2026-08-05T00:00:00.000Z", "tipo": "DESPESA", "purchaseId": null, "fixedExpenseId": null, "parcelaNumero": null, "parcelaTotal": null, "terceiro": null, "createdAt": "..." }
 ]
 ```
 
@@ -317,15 +323,19 @@ Só para contas `tipo === "CARTAO_CREDITO"` — outro tipo retorna `400 { "error
     { "mes": "2026-09", "total": "700" },
     { "mes": "2026-10", "total": "500" }
   ],
-  "limiteDisponivel": "3000"
+  "limiteDisponivel": "3000",
+  "terceirosFaturaAtual": [
+    { "nome": "Maria", "total": "120" }
+  ]
 }
 ```
 - `faturaAtual` = soma das transações do cartão no mês corrente (mês civil, não ciclo de fechamento).
 - `faturasFuturas` = soma agrupada por mês das transações em meses futuros, ordenado ascendente.
 - `limiteDisponivel` = `limite − (faturaAtual + soma(faturasFuturas))`.
+- Compras de terceiros entram normalmente nos três campos acima.
+- `terceirosFaturaAtual` = parte da `faturaAtual` que é de terceiros, somada por nome (match exato do `terceiro`), ordenada por nome. Vazio se não houver.
 
 ## O que não existe ainda
 
 - Paginação em nenhuma rota de listagem (`GET /accounts`, `/transactions`, `/purchases`, `/categories` retornam tudo).
-- `PUT`/edição de Purchase.
 - Include de relações (category/account) nos endpoints que retornam Transaction — sempre vêm só os IDs.

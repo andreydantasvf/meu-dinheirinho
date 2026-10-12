@@ -1,5 +1,6 @@
 import type { Purchase, Transaction } from '@/types/entities';
 import { generateInstallments } from '../logic/purchase-installments';
+import { invalid } from '../errors';
 import type { Route } from '../router';
 import type { DemoDb } from '../types';
 import {
@@ -10,6 +11,7 @@ import {
   parseDate,
   parseIntInRange,
   parseMoney,
+  parseText,
   requireString,
 } from './shared';
 
@@ -30,7 +32,16 @@ function parsePurchase(body: Record<string, unknown>) {
       1,
       Number.MAX_SAFE_INTEGER,
     ),
+    terceiro: parseTerceiro(body.terceiro),
   };
+}
+
+// z.string().trim().max(60).nullish().transform((v) => v || null)
+function parseTerceiro(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  const terceiro = parseText(value).trim();
+  if (terceiro.length > 60) throw invalid();
+  return terceiro || null;
 }
 
 function installmentTransactions(purchase: Purchase): Transaction[] {
@@ -51,6 +62,7 @@ function installmentTransactions(purchase: Purchase): Transaction[] {
     fixedExpenseId: null,
     parcelaNumero: parcela.parcelaNumero,
     parcelaTotal: parcela.parcelaTotal,
+    terceiro: purchase.terceiro,
     createdAt,
   }));
 }

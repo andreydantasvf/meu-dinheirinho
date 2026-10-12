@@ -6,6 +6,7 @@ import {
   agruparFaturaAtualPorCartao,
   agruparFaturasFuturas,
   agruparGastoPorCategoria,
+  agruparTerceiros,
   calcularLimiteDisponivel,
   calcularSaldoMes,
   construirFiltroExtrato,
@@ -22,13 +23,15 @@ export const reportsService = {
       inicio,
       fim,
     );
-    const despesas = transactions.filter((t) => t.tipo === 'DESPESA');
+    // Compras de terceiros entram na fatura do cartão, mas não no saldo/gasto.
+    const minhas = transactions.filter((t) => !t.terceiro);
+    const despesas = minhas.filter((t) => t.tipo === 'DESPESA');
     const doCartao = transactions.filter(
       (t) => t.account.tipo === 'CARTAO_CREDITO',
     );
 
     return {
-      saldoMes: calcularSaldoMes(transactions),
+      saldoMes: calcularSaldoMes(minhas),
       gastoPorCategoria: agruparGastoPorCategoria(despesas),
       faturaAtualPorCartao: agruparFaturaAtualPorCartao(doCartao),
     };
@@ -73,6 +76,11 @@ export const reportsService = {
       faturasFuturas: faturasFuturasParaLimite,
     });
 
-    return { faturaAtual, faturasFuturas, limiteDisponivel };
+    return {
+      faturaAtual,
+      faturasFuturas,
+      limiteDisponivel,
+      terceirosFaturaAtual: agruparTerceiros(doMesAtual),
+    };
   },
 };

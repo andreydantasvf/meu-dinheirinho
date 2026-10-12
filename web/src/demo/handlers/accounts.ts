@@ -1,5 +1,5 @@
 import type { Account } from '@/types/entities';
-import { internalError, invalid } from '../errors';
+import { DemoHttpError, invalid } from '../errors';
 import type { Route } from '../router';
 import type { DemoDb } from '../types';
 import {
@@ -88,7 +88,12 @@ function removeAccount(db: DemoDb, id: string): void {
     db.transactions.some((t) => t.accountId === id) ||
     db.purchases.some((p) => p.accountId === id) ||
     db.fixedExpenses.some((f) => f.accountId === id);
-  if (emUso) throw internalError();
+  if (emUso) {
+    throw new DemoHttpError(
+      409,
+      'Não é possível excluir uma conta com lançamentos',
+    );
+  }
   db.accounts = db.accounts.filter((a) => a.id !== id);
 }
 

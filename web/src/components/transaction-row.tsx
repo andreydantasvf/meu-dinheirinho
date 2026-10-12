@@ -1,4 +1,4 @@
-import { IconLock, IconTrash, IconRepeat } from '@tabler/icons-react';
+import { IconLock, IconTrash, IconRepeat, IconUser } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { CategoryIcon } from '@/components/category-icon';
 import { formatMoney } from '@/lib/money';
@@ -50,7 +50,11 @@ export function TransactionRow({
         <span
           className={cn(
             'text-sm font-extrabold tabular-nums',
-            isReceita ? 'text-success' : 'text-foreground',
+            isReceita
+              ? 'text-success'
+              : transaction.terceiro
+                ? 'text-muted-foreground'
+                : 'text-foreground',
           )}
         >
           {isReceita ? '+' : '-'} {formatMoney(transaction.valor)}
@@ -60,6 +64,13 @@ export function TransactionRow({
           <span className="inline-flex items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
             <IconLock size={10} />
             {transaction.parcelaNumero}/{transaction.parcelaTotal}
+          </span>
+        )}
+
+        {transaction.terceiro && (
+          <span className="inline-flex max-w-28 items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+            <IconUser size={10} className="shrink-0" />
+            <span className="truncate">{transaction.terceiro}</span>
           </span>
         )}
 

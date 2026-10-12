@@ -120,3 +120,26 @@ export function calcularLimiteDisponivel(input: {
   );
   return input.limite.minus(totalComprometido);
 }
+
+export type TransactionComTerceiro = {
+  valor: Decimal;
+  terceiro: string | null;
+};
+
+export type TotalPorTerceiro = { nome: string; total: Decimal };
+
+export function agruparTerceiros(
+  transactions: TransactionComTerceiro[],
+): TotalPorTerceiro[] {
+  const totals = new Map<string, Decimal>();
+  for (const t of transactions) {
+    if (!t.terceiro) continue;
+    totals.set(
+      t.terceiro,
+      (totals.get(t.terceiro) ?? new Decimal(0)).plus(t.valor),
+    );
+  }
+  return [...totals.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([nome, total]) => ({ nome, total }));
+}

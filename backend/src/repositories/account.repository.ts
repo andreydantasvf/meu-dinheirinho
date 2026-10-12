@@ -21,6 +21,16 @@ export const accountRepository = {
     return prisma.account.update({ where: { id }, data });
   },
 
+  async isInUse(id: string) {
+    const where = { accountId: id };
+    const [transactions, purchases, fixedExpenses] = await prisma.$transaction([
+      prisma.transaction.count({ where }),
+      prisma.purchase.count({ where }),
+      prisma.fixedExpense.count({ where }),
+    ]);
+    return transactions + purchases + fixedExpenses > 0;
+  },
+
   remove(id: string) {
     return prisma.account.delete({ where: { id } });
   },

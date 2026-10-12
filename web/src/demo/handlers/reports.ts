@@ -5,6 +5,7 @@ import {
   agruparFaturaAtualPorCartao,
   agruparFaturasFuturas,
   agruparGastoPorCategoria,
+  agruparTerceiros,
   calcularLimiteDisponivel,
   calcularSaldoMes,
   currentMonthUTC,
@@ -42,6 +43,7 @@ function comRelacoes(db: DemoDb) {
       valor: new Decimal(t.valor),
       accountId: t.accountId,
       categoryId: t.categoryId,
+      terceiro: t.terceiro,
       account,
       category,
     };
@@ -55,11 +57,13 @@ function dashboard(db: DemoDb, query: URLSearchParams) {
   const transactions = db.transactions
     .filter((t) => noIntervalo(t, inicio, fim))
     .map(comRelacoes(db));
+  // Compras de terceiros entram na fatura do cartão, mas não no saldo/gasto.
+  const minhas = transactions.filter((t) => !t.terceiro);
 
   return {
-    saldoMes: calcularSaldoMes(transactions).toString(),
+    saldoMes: calcularSaldoMes(minhas).toString(),
     gastoPorCategoria: agruparGastoPorCategoria(
-      transactions.filter((t) => t.tipo === 'DESPESA'),
+      minhas.filter((t) => t.tipo === 'DESPESA'),
     ).map((g) => ({ ...g, total: g.total.toString() })),
     faturaAtualPorCartao: agruparFaturaAtualPorCartao(
       transactions.filter((t) => t.account.tipo === 'CARTAO_CREDITO'),
@@ -103,6 +107,7 @@ function fatura(db: DemoDb, accountId: string) {
       valor: new Decimal(t.valor),
       data: new Date(t.data),
       fixedExpenseId: t.fixedExpenseId,
+      terceiro: t.terceiro,
     }));
   const doMesAtual = transactions.filter((t) => t.data < inicioProximoMes);
   const futuras = transactions.filter((t) => t.data >= inicioProximoMes);
@@ -124,6 +129,10 @@ function fatura(db: DemoDb, accountId: string) {
       total: f.total.toString(),
     })),
     limiteDisponivel: limiteDisponivel.toString(),
+    terceirosFaturaAtual: agruparTerceiros(doMesAtual).map((t) => ({
+      nome: t.nome,
+      total: t.total.toString(),
+    })),
   };
 }
 

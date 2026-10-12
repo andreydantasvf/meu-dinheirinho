@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IconCalendar } from '@tabler/icons-react';
+import { IconCalendar, IconUser } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -18,7 +18,7 @@ import { useCategories } from '@/hooks/use-categories';
 import { useFatura } from '@/hooks/use-fatura';
 import { useDeleteTransaction, useExtrato } from '@/hooks/use-transactions';
 import { useDeletePurchase } from '@/hooks/use-purchases';
-import { formatMoney } from '@/lib/money';
+import { apiStringToCents, centsToApiString, formatMoney } from '@/lib/money';
 import { currentMonth, formatMonthLabel } from '@/lib/date';
 import { ApiError } from '@/lib/api';
 import type { Account, Transaction } from '@/types/entities';
@@ -44,6 +44,15 @@ export function CardInvoiceDetails({ account }: { account: Account }) {
     () => [...(items ?? [])].sort((a, b) => b.data.localeCompare(a.data)),
     [items],
   );
+
+  const terceiros = fatura?.terceirosFaturaAtual ?? [];
+  // "Seu gasto" = fatura atual menos o que é de terceiros, em centavos.
+  const seuGastoCents = fatura
+    ? terceiros.reduce(
+        (cents, t) => cents - apiStringToCents(t.total),
+        apiStringToCents(fatura.faturaAtual),
+      )
+    : 0;
 
   async function confirmDelete() {
     if (!deleting) return;
@@ -72,6 +81,36 @@ export function CardInvoiceDetails({ account }: { account: Account }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {terceiros.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-4">
+          <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+            Terceiros nesta fatura
+          </span>
+          <div className="flex flex-col gap-1.5">
+            {terceiros.map((terceiro) => (
+              <div
+                key={terceiro.nome}
+                className="flex justify-between gap-3 text-xs font-medium text-muted-foreground"
+              >
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <IconUser size={13} className="shrink-0" />
+                  <span className="truncate">{terceiro.nome}</span>
+                </span>
+                <span className="font-bold text-foreground tabular-nums">
+                  {formatMoney(terceiro.total)}
+                </span>
+              </div>
+            ))}
+            <div className="mt-1 flex justify-between border-t border-border pt-2 text-xs font-semibold text-foreground">
+              <span>Seu gasto</span>
+              <span className="font-extrabold tabular-nums">
+                {formatMoney(centsToApiString(seuGastoCents))}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {fatura && fatura.faturasFuturas.length > 0 && (
         <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-4">
           <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">

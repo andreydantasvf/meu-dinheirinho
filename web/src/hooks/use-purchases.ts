@@ -10,6 +10,7 @@ export type PurchaseInput = {
   descricao: string;
   dataCompra: string;
   numeroParcelas: number;
+  terceiro: string | null;
 };
 
 function invalidateAfterPurchaseChange(

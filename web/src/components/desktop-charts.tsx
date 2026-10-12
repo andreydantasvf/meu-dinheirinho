@@ -29,7 +29,7 @@ export function ExpenseTypeChart({
     let fixa = 0;
 
     for (const t of transactions) {
-      if (t.tipo === 'DESPESA') {
+      if (t.tipo === 'DESPESA' && !t.terceiro) {
         const val = Number(t.valor);
         if (t.purchaseId) parcelada += val;
         else if (t.fixedExpenseId) fixa += val;

@@ -60,10 +60,12 @@ export default function Home() {
   }, [transactions]);
 
   // Total income vs total expense from transactions in current month
+  // (compras de terceiros ficam de fora: entram na fatura, não no gasto)
   const { totalEntradas, totalSaidas } = useMemo(() => {
     let entradas = 0;
     let saidas = 0;
     for (const t of transactions ?? []) {
+      if (t.terceiro) continue;
       const val = Number(t.valor);
       if (t.tipo === 'RECEITA') entradas += val;
       else saidas += val;
@@ -322,6 +324,7 @@ export default function Home() {
                           </span>
                           <span className="truncate text-xs text-muted-foreground">
                             {cat?.nome ?? 'Geral'} · {acc?.nome ?? 'Conta'}
+                            {t.terceiro && ` · ${t.terceiro}`}
                           </span>
                         </div>
                       </div>
@@ -329,7 +332,11 @@ export default function Home() {
                       <span
                         className={cn(
                           'text-sm font-bold tabular-nums shrink-0 ml-2',
-                          isReceita ? 'text-success' : 'text-foreground',
+                          isReceita
+                            ? 'text-success'
+                            : t.terceiro
+                              ? 'text-muted-foreground'
+                              : 'text-foreground',
                         )}
                       >
                         {isReceita ? '+' : '-'} {formatMoney(t.valor)}

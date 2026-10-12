@@ -62,15 +62,9 @@ export default function Cartoes() {
       await deleteAccount.mutateAsync(deleting.id);
       toast.success('Conta excluída com sucesso');
     } catch (error) {
-      if (error instanceof ApiError && error.status === 500) {
-        toast.error('Não é possível excluir uma conta com lançamentos');
-      } else {
-        toast.error(
-          error instanceof ApiError
-            ? error.message
-            : 'Não foi possível excluir',
-        );
-      }
+      toast.error(
+        error instanceof ApiError ? error.message : 'Não foi possível excluir',
+      );
     } finally {
       setDeleting(undefined);
     }

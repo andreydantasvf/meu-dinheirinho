@@ -9,6 +9,7 @@ vi.mock('../repositories/account.repository', () => ({
     findById: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    isInUse: vi.fn(),
     remove: vi.fn(),
   },
 }));
@@ -114,6 +115,7 @@ describe('accountService', () => {
     vi.mocked(accountRepository.findById).mockResolvedValue(
       existingAccount as never,
     );
+    vi.mocked(accountRepository.isInUse).mockResolvedValue(false);
     vi.mocked(accountRepository.remove).mockResolvedValue(
       existingAccount as never,
     );
@@ -121,5 +123,18 @@ describe('accountService', () => {
     await accountService.remove('1');
 
     expect(accountRepository.remove).toHaveBeenCalledWith('1');
+  });
+
+  it('remove() throws AppError 409 and does not delete when the account has lançamentos', async () => {
+    vi.mocked(accountRepository.findById).mockResolvedValue({
+      id: '1',
+    } as never);
+    vi.mocked(accountRepository.isInUse).mockResolvedValue(true);
+
+    await expect(accountService.remove('1')).rejects.toMatchObject({
+      status: 409,
+      message: 'Não é possível excluir uma conta com lançamentos',
+    });
+    expect(accountRepository.remove).not.toHaveBeenCalled();
   });
 });

@@ -62,6 +62,44 @@ describe('reportsService', () => {
     ]);
   });
 
+  it('dashboard() keeps terceiro purchases in the card invoice but out of saldo and gasto', async () => {
+    vi.mocked(reportsRepository.findTransactionsNoIntervalo).mockResolvedValue([
+      {
+        tipo: 'RECEITA',
+        valor: new Prisma.Decimal(1000),
+        categoryId: 'cat-salario',
+        category: { nome: 'Salário' },
+        accountId: 'acc-corrente',
+        account: { nome: 'Conta Corrente', tipo: 'CONTA_CORRENTE' },
+        terceiro: null,
+      },
+      {
+        tipo: 'DESPESA',
+        valor: new Prisma.Decimal(200),
+        categoryId: 'cat-mercado',
+        category: { nome: 'Mercado' },
+        accountId: 'acc-cartao',
+        account: { nome: 'Cartão Nubank', tipo: 'CARTAO_CREDITO' },
+        terceiro: null,
+      },
+      {
+        tipo: 'DESPESA',
+        valor: new Prisma.Decimal(150),
+        categoryId: 'cat-mercado',
+        category: { nome: 'Mercado' },
+        accountId: 'acc-cartao',
+        account: { nome: 'Cartão Nubank', tipo: 'CARTAO_CREDITO' },
+        terceiro: 'Maria',
+      },
+    ] as never);
+
+    const result = await reportsService.dashboard();
+
+    expect(result.saldoMes.toString()).toBe('800');
+    expect(result.gastoPorCategoria[0].total.toString()).toBe('200');
+    expect(result.faturaAtualPorCartao[0].total.toString()).toBe('350');
+  });
+
   it('dashboard(mes) aggregates the given month instead of the current one', async () => {
     vi.mocked(reportsRepository.findTransactionsNoIntervalo).mockResolvedValue(
       [],
@@ -134,5 +172,37 @@ describe('reportsService', () => {
 
     expect(result.faturaAtual.toString()).toBe('800');
     expect(result.limiteDisponivel.toString()).toBe('3000');
+  });
+
+  it('fatura() includes terceiro purchases in the invoice and lists them per person', async () => {
+    vi.mocked(accountRepository.findById).mockResolvedValue({
+      id: 'acc1',
+      tipo: 'CARTAO_CREDITO',
+      limite: new Prisma.Decimal(5000),
+    } as never);
+
+    const hoje = new Date();
+    const mesAtual = new Date(
+      Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 10),
+    );
+    const proximoMes = new Date(
+      Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 10),
+    );
+
+    vi.mocked(
+      reportsRepository.findTransactionsDoCartaoApartirDe,
+    ).mockResolvedValue([
+      { valor: new Prisma.Decimal(800), data: mesAtual, terceiro: null },
+      { valor: new Prisma.Decimal(120), data: mesAtual, terceiro: 'Maria' },
+      { valor: new Prisma.Decimal(120), data: proximoMes, terceiro: 'Maria' },
+    ] as never);
+
+    const result = await reportsService.fatura('acc1');
+
+    expect(result.faturaAtual.toString()).toBe('920');
+    expect(result.limiteDisponivel.toString()).toBe('3960');
+    expect(
+      result.terceirosFaturaAtual.map((t) => [t.nome, t.total.toString()]),
+    ).toEqual([['Maria', '120']]);
   });
 });

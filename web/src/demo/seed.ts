@@ -6,7 +6,7 @@ import { createTransaction } from './handlers/transactions';
 import type { DemoDb } from './types';
 
 // Bump ao mudar o formato do DemoDb ou o seed: bancos salvos com outra versão são descartados.
-export const DEMO_DB_VERSION = 1;
+export const DEMO_DB_VERSION = 2;
 
 // Ids fixos para contas/categorias: as cores dos cartões ficam fora da API (localStorage,
 // lib/card-colors.ts) e precisam de um id estável para sobreviver ao reset.
@@ -282,6 +282,26 @@ export function createSeed(hoje: Date): DemoDb {
     descricao: 'Curso de inglês',
     dataCompra: isoDate(y, m - 5, 12),
     numeroParcelas: 6,
+  });
+
+  // Compras de terceiros: entram na fatura do cartão, mas não no saldo/gasto.
+  createPurchase(db, {
+    accountId: ACC.roxinho,
+    categoryId: CAT.compras,
+    valorTotal: '900',
+    descricao: 'Fone de ouvido',
+    dataCompra: isoDate(y, m - 1, 20),
+    numeroParcelas: 3,
+    terceiro: 'Maria',
+  });
+  createPurchase(db, {
+    accountId: ACC.roxinho,
+    categoryId: CAT.restaurantes,
+    valorTotal: '86.40',
+    descricao: 'Jantar',
+    dataCompra: isoDate(y, m, 3),
+    numeroParcelas: 1,
+    terceiro: 'João',
   });
 
   // Gastos fixos (geram 12 meses a partir do início, como no backend).

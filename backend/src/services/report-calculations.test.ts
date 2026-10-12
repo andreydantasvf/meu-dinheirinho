@@ -4,6 +4,7 @@ import {
   agruparFaturaAtualPorCartao,
   agruparFaturasFuturas,
   agruparGastoPorCategoria,
+  agruparTerceiros,
   calcularLimiteDisponivel,
   calcularSaldoMes,
   construirFiltroExtrato,
@@ -77,6 +78,28 @@ describe('agruparFaturaAtualPorCartao', () => {
     expect(grupos).toEqual([
       { accountId: 'acc1', nome: 'Nubank', total: new Prisma.Decimal(150) },
     ]);
+  });
+});
+
+describe('agruparTerceiros', () => {
+  it('sums values per terceiro, ignores own purchases and sorts by name', () => {
+    const result = agruparTerceiros([
+      { valor: new Prisma.Decimal('50.10'), terceiro: 'Maria' },
+      { valor: new Prisma.Decimal(300), terceiro: null },
+      { valor: new Prisma.Decimal(80), terceiro: 'João' },
+      { valor: new Prisma.Decimal('0.2'), terceiro: 'Maria' },
+    ]);
+
+    expect(result.map((r) => [r.nome, r.total.toString()])).toEqual([
+      ['João', '80'],
+      ['Maria', '50.3'],
+    ]);
+  });
+
+  it('returns an empty list when there are no terceiros', () => {
+    expect(
+      agruparTerceiros([{ valor: new Prisma.Decimal(10), terceiro: null }]),
+    ).toEqual([]);
   });
 });
 
