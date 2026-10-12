@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { IconX } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
+import { useCloseModal } from '@/hooks/use-close-modal';
 
 export function ModalRoute({
   title,
@@ -10,7 +10,7 @@ export function ModalRoute({
   title: string;
   children?: ReactNode;
 }) {
-  const navigate = useNavigate();
+  const closeModal = useCloseModal();
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background text-foreground shadow-2xl pt-[calc(0.75rem+env(safe-area-inset-top))] md:items-center md:justify-center md:bg-black/50 md:p-4 md:pt-4">
@@ -19,7 +19,8 @@ export function ModalRoute({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={closeModal}
+            aria-label="Fechar"
             className="size-9 rounded-full bg-foreground/5 text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
           >
             <IconX size={20} />

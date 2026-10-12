@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,6 +21,7 @@ import {
 import { ApiError } from '@/lib/api';
 import { apiStringToCents, centsToApiString, formatMoney } from '@/lib/money';
 import { todayLocalIso } from '@/lib/date';
+import { useCloseModal } from '@/hooks/use-close-modal';
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
 import {
@@ -90,7 +91,7 @@ function toFormValues(purchase: Purchase): PurchaseFormValues {
 export default function NovaCompraParcelada() {
   const { id } = useParams();
   const isEditing = Boolean(id);
-  const navigate = useNavigate();
+  const closeModal = useCloseModal();
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
   const { data: purchase, isLoading: isLoadingPurchase } = usePurchase(id);
@@ -145,7 +146,7 @@ export default function NovaCompraParcelada() {
         await createPurchase.mutateAsync(purchaseInput);
         toast.success('Compra parcelada criada com sucesso');
       }
-      navigate(-1);
+      closeModal();
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : 'Não foi possível salvar',

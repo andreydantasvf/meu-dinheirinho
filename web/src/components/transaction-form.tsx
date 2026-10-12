@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useCreateFixedExpense } from '@/hooks/use-fixed-expenses';
 import { useCreateReminder, useReminders } from '@/hooks/use-reminders';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import type {
   Control,
@@ -32,6 +32,7 @@ import {
 } from './controlled-fields';
 import { cn } from '@/lib/utils';
 import { todayLocalIso } from '@/lib/date';
+import { useCloseModal } from '@/hooks/use-close-modal';
 import { ApiError } from '@/lib/api';
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
@@ -361,7 +362,7 @@ function DespesaForm({
   id: string | undefined;
   isLocked: boolean;
 }) {
-  const navigate = useNavigate();
+  const closeModal = useCloseModal();
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
   const createTransaction = useCreateTransaction();
@@ -425,7 +426,7 @@ function DespesaForm({
         toast.success('Transação criada com sucesso');
         if (lembrarTodoMes) await createMonthlyReminder(values, 'DESPESA');
       }
-      navigate(-1);
+      closeModal();
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : 'Não foi possível salvar',
@@ -505,7 +506,7 @@ function ReceitaForm({
   id: string | undefined;
   isLocked: boolean;
 }) {
-  const navigate = useNavigate();
+  const closeModal = useCloseModal();
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
   const createTransaction = useCreateTransaction();
@@ -548,7 +549,7 @@ function ReceitaForm({
         toast.success('Transação criada com sucesso');
         if (lembrarTodoMes) await createMonthlyReminder(values, 'RECEITA');
       }
-      navigate(-1);
+      closeModal();
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : 'Não foi possível salvar',
