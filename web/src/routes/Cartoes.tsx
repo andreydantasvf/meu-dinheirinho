@@ -23,6 +23,12 @@ import { CardWallet } from '@/components/card-wallet';
 import { CardInvoiceDetails } from '@/components/card-invoice-details';
 import { useAccounts, useDeleteAccount } from '@/hooks/use-accounts';
 import { ApiError } from '@/lib/api';
+import { currentMonth } from '@/lib/date';
+import {
+  isMonth,
+  isNonEmpty,
+  useSearchParamState,
+} from '@/hooks/use-search-param-state';
 import { accountTypeLabels } from '@/types/entities';
 import type { Account } from '@/types/entities';
 
@@ -33,8 +39,17 @@ export default function Cartoes() {
   const [editing, setEditing] = useState<Account | undefined>(undefined);
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Account | undefined>(undefined);
-  const [focusedAccountId, setFocusedAccountId] = useState<string | undefined>(
-    undefined,
+  // Cartão em foco e mês da fatura na URL: abrir um item da fatura desmonta a
+  // tela, e ao voltar ela deve reabrir no mesmo cartão e na mesma fatura.
+  const [focusedAccountId, setFocusedAccountId] = useSearchParamState(
+    'cartao',
+    '',
+    isNonEmpty,
+  );
+  const [faturaMes, setFaturaMes] = useSearchParamState(
+    'fatura',
+    currentMonth(),
+    isMonth,
   );
 
   const cards = useMemo(
@@ -124,10 +139,16 @@ export default function Cartoes() {
             cards={cards}
             onEdit={openEdit}
             onDelete={setDeleting}
-            onFocusChange={setFocusedAccountId}
+            initialAccountId={focusedAccountId}
+            onFocusChange={(accountId) => setFocusedAccountId(accountId ?? '')}
           />
           {focusedCard && (
-            <CardInvoiceDetails key={focusedCard.id} account={focusedCard} />
+            <CardInvoiceDetails
+              key={focusedCard.id}
+              account={focusedCard}
+              mes={faturaMes}
+              onMesChange={setFaturaMes}
+            />
           )}
         </section>
       )}

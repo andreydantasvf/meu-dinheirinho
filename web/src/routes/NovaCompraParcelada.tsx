@@ -1,10 +1,11 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { IconMinus, IconPlus } from '@tabler/icons-react';
 import { toast } from 'sonner';
-import { ModalRoute } from '../components/ModalRoute';
+import { ModalFooter, ModalRoute } from '../components/ModalRoute';
+import { EditRouteGate } from '@/components/edit-route-gate';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,6 +21,8 @@ import {
 } from '@/components/controlled-fields';
 import { ApiError } from '@/lib/api';
 import { apiStringToCents, centsToApiString, formatMoney } from '@/lib/money';
+import { todayLocalIso } from '@/lib/date';
+import { useCloseModal } from '@/hooks/use-close-modal';
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
 import {
@@ -56,17 +59,21 @@ const purchaseSchema = z
 
 type PurchaseFormValues = z.infer<typeof purchaseSchema>;
 
-const emptyValues: PurchaseFormValues = {
-  descricao: '',
-  valorTotal: '0.00',
-  numeroParcelas: 2,
-  categoryId: '',
-  accountId: '',
-  dataCompra: new Date().toISOString(),
-  isSubscription: false,
-  isTerceiro: false,
-  terceiro: '',
-};
+// Função (e não constante de módulo): a data padrão é "hoje" no momento em que o
+// formulário abre, não quando o módulo carregou.
+function emptyValues(): PurchaseFormValues {
+  return {
+    descricao: '',
+    valorTotal: '0.00',
+    numeroParcelas: 2,
+    categoryId: '',
+    accountId: '',
+    dataCompra: todayLocalIso(),
+    isSubscription: false,
+    isTerceiro: false,
+    terceiro: '',
+  };
+}
 
 function toFormValues(purchase: Purchase): PurchaseFormValues {
   return {
@@ -84,11 +91,29 @@ function toFormValues(purchase: Purchase): PurchaseFormValues {
 
 export default function NovaCompraParcelada() {
   const { id } = useParams();
-  const isEditing = Boolean(id);
-  const navigate = useNavigate();
+  const purchaseQuery = usePurchase(id);
+
+  if (!id) return <PurchaseForm purchase={undefined} />;
+
+  // O gate fica fora do componente que chama `useForm`, como em NovaTransacao:
+  // senão os Selects de cartão/categoria montam antes do dado e não pré-preenchem
+  // (ver docs/web-architecture.md).
+  return (
+    <EditRouteGate
+      title="Compra parcelada"
+      notFoundMessage="Compra não encontrada. Ela pode ter sido excluída."
+      query={purchaseQuery}
+    >
+      {(purchase) => <PurchaseForm key={id} purchase={purchase} />}
+    </EditRouteGate>
+  );
+}
+
+function PurchaseForm({ purchase }: { purchase: Purchase | undefined }) {
+  const isEditing = Boolean(purchase);
+  const closeModal = useCloseModal();
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
-  const { data: purchase, isLoading: isLoadingPurchase } = usePurchase(id);
   const createPurchase = useCreatePurchase();
   const createFixedExpense = useCreateFixedExpense();
   const updatePurchase = useUpdatePurchase();
@@ -102,7 +127,11 @@ export default function NovaCompraParcelada() {
     formState: { errors, isSubmitting },
   } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
-    values: purchase ? toFormValues(purchase) : emptyValues,
+    defaultValues: purchase ? toFormValues(purchase) : emptyValues(),
+    // Mantém o form em sincronia se o refetch trouxer dado mais novo que o cache,
+    // sem apagar o que o usuário já editou.
+    values: purchase ? toFormValues(purchase) : undefined,
+    resetOptions: { keepDirtyValues: true },
   });
 
   const valorTotal = watch('valorTotal');
@@ -133,29 +162,19 @@ export default function NovaCompraParcelada() {
           dataInicio: values.dataCompra,
         });
         toast.success('Assinatura criada com sucesso');
-      } else if (isEditing && id) {
-        await updatePurchase.mutateAsync({ id, ...purchaseInput });
+      } else if (purchase) {
+        await updatePurchase.mutateAsync({ id: purchase.id, ...purchaseInput });
         toast.success('Compra parcelada atualizada com sucesso');
       } else {
         await createPurchase.mutateAsync(purchaseInput);
         toast.success('Compra parcelada criada com sucesso');
       }
-      navigate(-1);
+      closeModal();
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : 'Não foi possível salvar',
       );
     }
-  }
-
-  if (isEditing && isLoadingPurchase) {
-    return (
-      <ModalRoute title="Compra parcelada">
-        <p className="py-8 text-center text-sm font-medium text-muted-foreground">
-          Carregando...
-        </p>
-      </ModalRoute>
-    );
   }
 
   return (
@@ -243,7 +262,7 @@ export default function NovaCompraParcelada() {
             <Input
               id="descricao"
               placeholder="Ex: Geladeira Frost Free"
-              className="h-12 rounded-xl border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground"
+              className="h-12 rounded-xl border-border bg-card px-4 text-base md:text-sm text-foreground placeholder:text-muted-foreground"
               {...register('descricao')}
             />
             <FieldError errors={[errors.descricao]} />
@@ -333,7 +352,7 @@ export default function NovaCompraParcelada() {
                   id="terceiro"
                   placeholder="Ex: Maria"
                   maxLength={60}
-                  className="h-12 rounded-xl border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground"
+                  className="h-12 rounded-xl border-border bg-card px-4 text-base md:text-sm text-foreground placeholder:text-muted-foreground"
                   {...register('terceiro')}
                 />
                 <FieldError errors={[errors.terceiro]} />
@@ -360,19 +379,21 @@ export default function NovaCompraParcelada() {
           </label>
         )}
 
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="mt-4 h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
-        >
-          {isSubmitting
-            ? 'Salvando parcelas...'
-            : isSubscription
-              ? 'Criar assinatura'
-              : isEditing
-                ? `Atualizar ${numeroParcelas} lançamentos`
-                : `Criar ${numeroParcelas} lançamentos`}
-        </Button>
+        <ModalFooter>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
+          >
+            {isSubmitting
+              ? 'Salvando parcelas...'
+              : isSubscription
+                ? 'Criar assinatura'
+                : isEditing
+                  ? `Atualizar ${numeroParcelas} lançamentos`
+                  : `Criar ${numeroParcelas} lançamentos`}
+          </Button>
+        </ModalFooter>
       </form>
     </ModalRoute>
   );

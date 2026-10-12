@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useCreateFixedExpense } from '@/hooks/use-fixed-expenses';
 import { useCreateReminder, useReminders } from '@/hooks/use-reminders';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import type {
   Control,
@@ -14,7 +14,7 @@ import type {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { ModalRoute } from './ModalRoute';
+import { ModalFooter, ModalRoute } from './ModalRoute';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -31,6 +31,8 @@ import {
   ControlledSelect,
 } from './controlled-fields';
 import { cn } from '@/lib/utils';
+import { todayLocalIso } from '@/lib/date';
+import { useCloseModal } from '@/hooks/use-close-modal';
 import { ApiError } from '@/lib/api';
 import { useCategories } from '@/hooks/use-categories';
 import { useAccounts } from '@/hooks/use-accounts';
@@ -70,24 +72,30 @@ type CommonFormValues = z.infer<z.ZodObject<typeof commonFieldsSchema>>;
 type DespesaFormValues = z.infer<typeof despesaSchema>;
 type ReceitaFormValues = z.infer<typeof receitaSchema>;
 
-const emptyDespesaValues: DespesaFormValues = {
-  valor: '0.00',
-  categoryId: '',
-  accountId: '',
-  descricao: '',
-  data: new Date().toISOString(),
-  isFixedExpense: false,
-  lembrarTodoMes: false,
-};
+// Funções (e não constantes de módulo): a data padrão é "hoje" no momento em que
+// o formulário abre, não quando o módulo carregou.
+function emptyDespesaValues(): DespesaFormValues {
+  return {
+    valor: '0.00',
+    categoryId: '',
+    accountId: '',
+    descricao: '',
+    data: todayLocalIso(),
+    isFixedExpense: false,
+    lembrarTodoMes: false,
+  };
+}
 
-const emptyReceitaValues: ReceitaFormValues = {
-  valor: '0.00',
-  categoryId: '',
-  accountId: '',
-  descricao: '',
-  data: new Date().toISOString(),
-  lembrarTodoMes: false,
-};
+function emptyReceitaValues(): ReceitaFormValues {
+  return {
+    valor: '0.00',
+    categoryId: '',
+    accountId: '',
+    descricao: '',
+    data: todayLocalIso(),
+    lembrarTodoMes: false,
+  };
+}
 
 function toCommonValues(transaction: Transaction): CommonFormValues {
   return {
@@ -112,7 +120,7 @@ function despesaDefaults(
       lembrarTodoMes: false,
     };
   }
-  return emptyDespesaValues;
+  return emptyDespesaValues();
 }
 
 function receitaDefaults(
@@ -121,7 +129,7 @@ function receitaDefaults(
   if (transaction?.tipo === 'RECEITA') {
     return { ...toCommonValues(transaction), lembrarTodoMes: false };
   }
-  return emptyReceitaValues;
+  return emptyReceitaValues();
 }
 
 // Lembrete é um módulo à parte (não mexe no saldo) — o toggle só cria um Reminder
@@ -228,6 +236,7 @@ function TransactionCommonFields<T extends CommonFormValues>({
   categoryTipo,
   accounts,
   selectedCategoryId,
+  selectedAccountId,
 }: {
   control: Control<T>;
   register: UseFormRegister<T>;
@@ -237,6 +246,7 @@ function TransactionCommonFields<T extends CommonFormValues>({
   categoryTipo: TransactionType;
   accounts: Account[] | undefined;
   selectedCategoryId: string;
+  selectedAccountId: string;
 }) {
   const filteredCategories =
     categories?.filter((category) => category.tipo === categoryTipo) ?? [];
@@ -302,7 +312,11 @@ function TransactionCommonFields<T extends CommonFormValues>({
           name={'accountId' as Path<T>}
           placeholder="Selecione a conta de origem"
           options={(accounts ?? [])
-            .filter((a) => a.tipo !== 'CARTAO_CREDITO')
+            // Cartão não é conta de origem de um lançamento novo, mas uma
+            // assinatura/parcela já lançada num cartão precisa mostrá-lo.
+            .filter(
+              (a) => a.tipo !== 'CARTAO_CREDITO' || a.id === selectedAccountId,
+            )
             .map((account) => ({
               value: account.id,
               label: account.nome,
@@ -322,7 +336,7 @@ function TransactionCommonFields<T extends CommonFormValues>({
         <Input
           id="descricao"
           placeholder="Ex: Mercado Bom Preço"
-          className="h-12 rounded-xl border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground"
+          className="h-12 rounded-xl border-border bg-card px-4 text-base md:text-sm text-foreground placeholder:text-muted-foreground"
           {...register('descricao' as Path<T>)}
         />
         <FieldError errors={[errors.descricao as { message?: string }]} />
@@ -354,7 +368,7 @@ function DespesaForm({
   id: string | undefined;
   isLocked: boolean;
 }) {
-  const navigate = useNavigate();
+  const closeModal = useCloseModal();
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
   const createTransaction = useCreateTransaction();
@@ -377,9 +391,13 @@ function DespesaForm({
     // query). `values` keeps the form in sync once the real data lands,
     // instead of leaving it stuck on the empty defaultValues forever.
     values: transaction ? despesaDefaults(transaction) : undefined,
+    // Reabrir uma transação mostra primeiro o cache e depois o refetch chega:
+    // sem isso o reset do `values` apagaria o que o usuário já digitou.
+    resetOptions: { keepDirtyValues: true },
   });
 
   const selectedCategoryId = watch('categoryId');
+  const selectedAccountId = watch('accountId');
 
   async function onSubmit(values: DespesaFormValues) {
     try {
@@ -418,7 +436,7 @@ function DespesaForm({
         toast.success('Transação criada com sucesso');
         if (lembrarTodoMes) await createMonthlyReminder(values, 'DESPESA');
       }
-      navigate(-1);
+      closeModal();
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : 'Não foi possível salvar',
@@ -450,6 +468,7 @@ function DespesaForm({
           categoryTipo="DESPESA"
           accounts={accounts}
           selectedCategoryId={selectedCategoryId}
+          selectedAccountId={selectedAccountId}
         />
 
         {!isEditing && (
@@ -475,13 +494,15 @@ function DespesaForm({
           transaction={isEditing ? transaction : undefined}
         />
 
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="mt-4 h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
-        >
-          {isSubmitting ? 'Salvando...' : 'Salvar transação'}
-        </Button>
+        <ModalFooter>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
+          >
+            {isSubmitting ? 'Salvando...' : 'Salvar transação'}
+          </Button>
+        </ModalFooter>
       </fieldset>
     </form>
   );
@@ -498,7 +519,7 @@ function ReceitaForm({
   id: string | undefined;
   isLocked: boolean;
 }) {
-  const navigate = useNavigate();
+  const closeModal = useCloseModal();
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
   const createTransaction = useCreateTransaction();
@@ -518,9 +539,11 @@ function ReceitaForm({
     // See the matching comment in DespesaForm: keeps the form synced if
     // `transaction` is still undefined on the render that mounts this form.
     values: transaction ? receitaDefaults(transaction) : undefined,
+    resetOptions: { keepDirtyValues: true },
   });
 
   const selectedCategoryId = watch('categoryId');
+  const selectedAccountId = watch('accountId');
 
   async function onSubmit(values: ReceitaFormValues) {
     try {
@@ -541,7 +564,7 @@ function ReceitaForm({
         toast.success('Transação criada com sucesso');
         if (lembrarTodoMes) await createMonthlyReminder(values, 'RECEITA');
       }
-      navigate(-1);
+      closeModal();
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : 'Não foi possível salvar',
@@ -573,6 +596,7 @@ function ReceitaForm({
           categoryTipo="RECEITA"
           accounts={accounts}
           selectedCategoryId={selectedCategoryId}
+          selectedAccountId={selectedAccountId}
         />
 
         <RememberMonthlyToggle
@@ -580,13 +604,15 @@ function ReceitaForm({
           transaction={isEditing ? transaction : undefined}
         />
 
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="mt-4 h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
-        >
-          {isSubmitting ? 'Salvando...' : 'Salvar transação'}
-        </Button>
+        <ModalFooter>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="h-14 w-full rounded-xl bg-primary font-bold text-base text-primary-foreground shadow-[0_0_24px_rgba(0,200,255,0.35)] hover:bg-primary/90 transition-all active:scale-[0.98]"
+          >
+            {isSubmitting ? 'Salvando...' : 'Salvar transação'}
+          </Button>
+        </ModalFooter>
       </fieldset>
     </form>
   );
@@ -609,9 +635,16 @@ export function TransactionForm({
   return (
     <ModalRoute title={isEditing ? 'Editar transação' : 'Nova transação'}>
       {isLocked && (
-        <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-300">
+        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
           Esta transação faz parte de uma compra parcelada e não pode ser
-          editada diretamente.
+          editada diretamente.{' '}
+          <Link
+            to={`/compras/${transaction?.purchaseId}`}
+            replace
+            className="font-bold underline underline-offset-2"
+          >
+            Editar a compra
+          </Link>
         </div>
       )}
 

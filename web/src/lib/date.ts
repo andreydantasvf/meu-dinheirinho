@@ -1,4 +1,4 @@
-import { addMonths, format, parse, parseISO } from 'date-fns';
+import { addMonths, format, parse, parseISO, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 /** ISO date string from the API -> "10 de ago." for display in lists. */
@@ -22,6 +22,14 @@ export function formatMonthLabel(mes: string): string {
 /** Today as "2026-08" — default value for the Extrato month filter and dashboards. */
 export function currentMonth(): string {
   return format(new Date(), 'yyyy-MM');
+}
+
+/** Local midnight of today as ISO — default date for new forms, same shape DatePickerField emits.
+ * Never `new Date().toISOString()`: at night in UTC-3 the UTC date is already tomorrow, and the
+ * backend buckets months in UTC. Call it when the form mounts, not at module load, or a PWA left
+ * open for days keeps an old "today". */
+export function todayLocalIso(): string {
+  return startOfDay(new Date()).toISOString();
 }
 
 /** "2026-08" -> "2026-09" / "2026-07" — Extrato prev/next month navigation. */

@@ -12,15 +12,16 @@ export type TransactionInput = {
   tipo: Transaction['tipo'];
 };
 
-function invalidateAfterTransactionChange(
+// Invalida a fatura de todos os cartões (não só a do `accountId` enviado):
+// uma edição pode mover a transação de um cartão para outro. Também invalida o
+// detalhe da transação, senão reabrir o formulário mostra o dado antigo do cache.
+export function invalidateAfterTransactionChange(
   queryClient: ReturnType<typeof useQueryClient>,
-  accountId?: string,
 ) {
+  queryClient.invalidateQueries({ queryKey: ['transactions'] });
   queryClient.invalidateQueries({ queryKey: ['extrato'] });
   queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-  if (accountId) {
-    queryClient.invalidateQueries({ queryKey: queryKeys.fatura(accountId) });
-  }
+  queryClient.invalidateQueries({ queryKey: ['fatura'] });
 }
 
 export function useExtrato(filters: ExtratoFilters) {
@@ -47,8 +48,7 @@ export function useCreateTransaction() {
   return useMutation({
     mutationFn: (input: TransactionInput) =>
       apiFetch<Transaction>('/transactions', { method: 'POST', body: input }),
-    onSuccess: (_data, variables) =>
-      invalidateAfterTransactionChange(queryClient, variables.accountId),
+    onSuccess: () => invalidateAfterTransactionChange(queryClient),
   });
 }
 
@@ -63,17 +63,15 @@ export function useUpdateTransaction() {
         method: 'PUT',
         body: input,
       }),
-    onSuccess: (_data, variables) =>
-      invalidateAfterTransactionChange(queryClient, variables.accountId),
+    onSuccess: () => invalidateAfterTransactionChange(queryClient),
   });
 }
 
 export function useDeleteTransaction() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id }: { id: string; accountId?: string }) =>
+    mutationFn: ({ id }: { id: string }) =>
       apiFetch<void>(`/transactions/${id}`, { method: 'DELETE' }),
-    onSuccess: (_data, variables) =>
-      invalidateAfterTransactionChange(queryClient, variables.accountId),
+    onSuccess: () => invalidateAfterTransactionChange(queryClient),
   });
 }

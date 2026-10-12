@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   IconArrowUpRight,
@@ -19,10 +19,11 @@ import { formatMoney } from '@/lib/money';
 import { currentMonth, formatMonthLabel, shiftMonth } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import { getUserName } from '@/lib/auth';
+import { isMonth, useSearchParamState } from '@/hooks/use-search-param-state';
 
 export default function Home() {
   const userName = getUserName();
-  const [mes, setMes] = useState(currentMonth());
+  const [mes, setMes] = useSearchParamState('mes', currentMonth(), isMonth);
   const {
     data: dashboard,
     isLoading: isDashLoading,
@@ -287,7 +288,7 @@ export default function Home() {
                 Últimas transações
               </span>
               <Link
-                to="/extrato"
+                to={mes === currentMonth() ? '/extrato' : `/extrato?mes=${mes}`}
                 className="text-xs font-semibold text-primary hover:underline"
               >
                 Extrato completo

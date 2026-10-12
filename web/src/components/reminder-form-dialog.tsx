@@ -66,16 +66,20 @@ const reminderSchema = z
 
 type ReminderFormValues = z.infer<typeof reminderSchema>;
 
-const defaultValues: ReminderFormValues = {
-  titulo: '',
-  tipo: 'SAIDA',
-  valor: '0.00',
-  recorrencia: 'MENSAL',
-  diaDoMes: String(new Date().getDate()),
-  dataUnica: '',
-  horario: '09:00',
-  diasAntecedencia: '0',
-};
+// Função (e não constante de módulo) para o "dia de hoje" não congelar num PWA
+// que fica aberto por dias.
+function emptyValues(): ReminderFormValues {
+  return {
+    titulo: '',
+    tipo: 'SAIDA',
+    valor: '0.00',
+    recorrencia: 'MENSAL',
+    diaDoMes: String(new Date().getDate()),
+    dataUnica: '',
+    horario: '09:00',
+    diasAntecedencia: '0',
+  };
+}
 
 const antecedenciaOptions = [
   { value: '0', label: 'No dia' },
@@ -119,12 +123,12 @@ export function ReminderFormDialog({
     formState: { errors, isSubmitting },
   } = useForm<ReminderFormValues>({
     resolver: zodResolver(reminderSchema),
-    defaultValues,
+    defaultValues: emptyValues(),
   });
 
   useEffect(() => {
     if (!open) return;
-    reset(reminder ? toFormValues(reminder) : defaultValues);
+    reset(reminder ? toFormValues(reminder) : emptyValues());
   }, [open, reminder, reset]);
 
   const tipo = watch('tipo');
